@@ -170,22 +170,22 @@ export default function BIPage() {
 
       {/* KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KPICard label="Total Revenue" value={fmt(kpis.paidIncome)} icon={<DollarSign className="w-5 h-5" />} gradient="from-emerald-500 to-emerald-600" sparkline />
-        <KPICard label="Total Expenses" value={fmt(kpis.paidExpense)} icon={<Wallet className="w-5 h-5" />} gradient="from-rose-500 to-pink-500" sparkline />
-        <KPICard label="Net Profit" value={fmt(kpis.netProfit)} icon={<TrendingUp className="w-5 h-5" />} gradient="from-blue-500 to-blue-600" sparkline />
-        <KPICard label="Pipeline Value" value={fmt(kpis.pipelineValue)} icon={<Target className="w-5 h-5" />} gradient="from-amber-500 to-orange-500" sparkline />
+        <KPICard label={t.bi.totalRevenue} value={fmt(kpis.paidIncome)} icon={<DollarSign className="w-5 h-5" />} gradient="from-emerald-500 to-emerald-600" sparkline />
+        <KPICard label={t.bi.totalExpenses} value={fmt(kpis.paidExpense)} icon={<Wallet className="w-5 h-5" />} gradient="from-rose-500 to-pink-500" sparkline />
+        <KPICard label={t.bi.netProfit} value={fmt(kpis.netProfit)} icon={<TrendingUp className="w-5 h-5" />} gradient="from-blue-500 to-blue-600" sparkline />
+        <KPICard label={t.bi.pipelineValue} value={fmt(kpis.pipelineValue)} icon={<Target className="w-5 h-5" />} gradient="from-amber-500 to-orange-500" sparkline />
       </div>
 
       {/* Revenue vs Expenses (last 6 months) */}
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">
-            <BarChart3 className="w-4 h-4 text-primary" /> Revenue vs Expenses (last 6 months)
+            <BarChart3 className="w-4 h-4 text-primary" /> {t.bi.revenueVsExpenses}
           </CardTitle>
         </CardHeader>
         <CardContent>
           {!hasFinancialData ? (
-            <EmptyState icon={<DollarSign className="w-9 h-9 text-muted-foreground/60" />} title="No financial data for this period" description="Add transactions in Financial to see this report." />
+            <EmptyState icon={<DollarSign className="w-9 h-9 text-muted-foreground/60" />} title={t.bi.noFinancialData} description={t.bi.noFinancialDataDesc} />
           ) : (
             <div className="h-[280px]">
               <ResponsiveContainer width="100%" height="100%">
@@ -195,8 +195,8 @@ export default function BIPage() {
                   <YAxis tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" tickFormatter={v => fmt(v).replace(/\.\d{2}$/, '')} />
                   <Tooltip formatter={(v: number) => fmt(v)} contentStyle={{ borderRadius: 8, border: '1px solid hsl(var(--border))' }} />
                   <Legend />
-                  <Bar dataKey="revenue" fill="hsl(152, 60%, 42%)" radius={[4, 4, 0, 0]} name="Revenue" />
-                  <Bar dataKey="expense" fill="hsl(0, 72%, 55%)" radius={[4, 4, 0, 0]} name="Expenses" />
+                  <Bar dataKey="revenue" fill="hsl(152, 60%, 42%)" radius={[4, 4, 0, 0]} name={t.bi.revenue} />
+                  <Bar dataKey="expense" fill="hsl(0, 72%, 55%)" radius={[4, 4, 0, 0]} name={t.bi.expenses} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -208,11 +208,11 @@ export default function BIPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base flex items-center gap-2"><Target className="w-4 h-4 text-primary" /> Deals by Stage</CardTitle>
+            <CardTitle className="text-base flex items-center gap-2"><Target className="w-4 h-4 text-primary" /> {t.bi.dealsByStage}</CardTitle>
           </CardHeader>
           <CardContent>
             {dealsByStage.length === 0 ? (
-              <EmptyState icon={<Target className="w-9 h-9 text-muted-foreground/60" />} title="No deals yet" description="Add deals in CRM Pipeline." />
+              <EmptyState icon={<Target className="w-9 h-9 text-muted-foreground/60" />} title={t.bi.noDeals} description={t.bi.noDealsDesc} />
             ) : (
               <div className="h-[280px]">
                 <ResponsiveContainer width="100%" height="100%">
@@ -221,7 +221,7 @@ export default function BIPage() {
                     <XAxis type="number" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
                     <YAxis dataKey="name" type="category" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" width={120} />
                     <Tooltip contentStyle={{ borderRadius: 8, border: '1px solid hsl(var(--border))' }} />
-                    <Bar dataKey="value" fill="hsl(217, 87%, 60%)" radius={[0, 4, 4, 0]} name="Deals" />
+                    <Bar dataKey="value" fill="hsl(217, 87%, 60%)" radius={[0, 4, 4, 0]} name={t.bi.dealsByStage} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -231,11 +231,11 @@ export default function BIPage() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base flex items-center gap-2"><Users className="w-4 h-4 text-primary" /> Top 5 Clients by Value</CardTitle>
+            <CardTitle className="text-base flex items-center gap-2"><Users className="w-4 h-4 text-primary" /> {t.bi.topClients}</CardTitle>
           </CardHeader>
           <CardContent>
             {topClients.length === 0 ? (
-              <EmptyState icon={<Users className="w-9 h-9 text-muted-foreground/60" />} title="No clients yet" description="Link deals to contacts or companies." />
+              <EmptyState icon={<Users className="w-9 h-9 text-muted-foreground/60" />} title={t.bi.noClients} description={t.bi.noClientsDesc} />
             ) : (
               <div className="space-y-2">
                 {topClients.map((c, i) => (
@@ -245,7 +245,7 @@ export default function BIPage() {
                       <span className="text-sm font-medium truncate" title={c.name}>{c.name}</span>
                     </div>
                     <div className="flex items-center gap-3 text-sm shrink-0">
-                      <Badge variant="secondary" className="text-xs">{c.count} {c.count === 1 ? 'deal' : 'deals'}</Badge>
+                      <Badge variant="secondary" className="text-xs">{c.count} {t.bi.deals}</Badge>
                       <span className="font-semibold text-emerald-600">{fmt(c.total)}</span>
                     </div>
                   </div>
@@ -259,20 +259,20 @@ export default function BIPage() {
       {/* Recent Transactions */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-base flex items-center gap-2"><DollarSign className="w-4 h-4 text-primary" /> Recent Transactions</CardTitle>
+          <CardTitle className="text-base flex items-center gap-2"><DollarSign className="w-4 h-4 text-primary" /> {t.bi.recentTransactions}</CardTitle>
         </CardHeader>
         <CardContent>
           {recentTx.length === 0 ? (
-            <EmptyState icon={<DollarSign className="w-9 h-9 text-muted-foreground/60" />} title="No transactions yet" description="Add transactions in Financial." />
+            <EmptyState icon={<DollarSign className="w-9 h-9 text-muted-foreground/60" />} title={t.bi.noTransactions} description={t.bi.noTransactionsDesc} />
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead className="text-right">Value</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>{t.bi.date}</TableHead>
+                  <TableHead>{t.bi.description}</TableHead>
+                  <TableHead>{t.bi.category}</TableHead>
+                  <TableHead className="text-right">{t.bi.value}</TableHead>
+                  <TableHead>{t.bi.status}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
