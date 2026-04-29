@@ -946,6 +946,11 @@ const ptBR = {
     listViewLabel: 'Lista',
     calendarViewLabel: 'Calendário',
 
+    viewList: 'Lista',
+    viewMonth: 'Mês',
+    viewWeek: 'Semana',
+    viewDay: 'Dia',
+
     // Followups
     followupsTitle: 'Follow-ups',
     followupsDesc: 'Sua agenda de tarefas de retorno',

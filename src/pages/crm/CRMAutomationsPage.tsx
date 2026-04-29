@@ -41,13 +41,18 @@ export default function CRMAutomationsPage() {
   const fetchData = async () => {
     if (!currentCompany) return;
     setLoading(true);
-    const [{ data: c }, { data: f }] = await Promise.all([
-      supabase.from('crm_campaigns').select('*').eq('company_id', currentCompany.id).order('created_at', { ascending: false }),
-      supabase.from('crm_flows').select('*').eq('company_id', currentCompany.id).order('created_at', { ascending: false }),
-    ]);
-    if (c) setCampaigns(c);
-    if (f) setFlows(f);
-    setLoading(false);
+    try {
+      const [{ data: c }, { data: f }] = await Promise.all([
+        supabase.from('crm_campaigns').select('*').eq('company_id', currentCompany.id).order('created_at', { ascending: false }),
+        supabase.from('crm_flows').select('*').eq('company_id', currentCompany.id).order('created_at', { ascending: false }),
+      ]);
+      if (c) setCampaigns(c);
+      if (f) setFlows(f);
+    } catch {
+      // queries failed — show empty state
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { fetchData(); }, [currentCompany]);

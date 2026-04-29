@@ -417,10 +417,10 @@ export default function CRMPipelinePage() {
             </Select>
           )}
           <div className="flex border rounded-md">
-            <Button variant={viewMode === 'kanban' ? 'default' : 'ghost'} size="sm" className="rounded-r-none h-8" onClick={() => setViewMode('kanban')}>
+            <Button variant={viewMode === 'kanban' ? 'default' : 'ghost'} size="sm" className="rounded-r-none h-8" onClick={() => { setViewMode('kanban'); if (quickFilter === 'won' || quickFilter === 'lost') setQuickFilter('all'); }}>
               <LayoutGrid className="w-3.5 h-3.5" />
             </Button>
-            <Button variant={viewMode === 'list' ? 'default' : 'ghost'} size="sm" className="rounded-l-none h-8" onClick={() => setViewMode('list')}>
+            <Button variant={viewMode === 'list' ? 'default' : 'ghost'} size="sm" className="rounded-l-none h-8" onClick={() => { setViewMode('list'); if (quickFilter === 'won' || quickFilter === 'lost') setQuickFilter('all'); }}>
               <List className="w-3.5 h-3.5" />
             </Button>
           </div>

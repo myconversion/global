@@ -109,10 +109,10 @@ export default function CRMFollowupsPage() {
         </div>
         <div className="flex gap-2 items-center flex-wrap">
           <ToggleGroup type="single" value={viewMode} onValueChange={(v) => v && setViewMode(v as typeof viewMode)} size="sm">
-            <ToggleGroupItem value="list" aria-label="List"><List className="w-4 h-4" /></ToggleGroupItem>
-            <ToggleGroupItem value="month" aria-label="Month"><CalendarDays className="w-4 h-4" /></ToggleGroupItem>
-            <ToggleGroupItem value="week" aria-label="Week">W</ToggleGroupItem>
-            <ToggleGroupItem value="day" aria-label="Day">D</ToggleGroupItem>
+            <ToggleGroupItem value="list" aria-label="List" className="gap-1.5 px-3"><List className="w-3.5 h-3.5" /><span className="hidden sm:inline">{t.crm.viewList}</span></ToggleGroupItem>
+            <ToggleGroupItem value="month" aria-label="Month" className="gap-1.5 px-3"><CalendarDays className="w-3.5 h-3.5" /><span className="hidden sm:inline">{t.crm.viewMonth}</span></ToggleGroupItem>
+            <ToggleGroupItem value="week" aria-label="Week" className="px-3">{t.crm.viewWeek}</ToggleGroupItem>
+            <ToggleGroupItem value="day" aria-label="Day" className="px-3">{t.crm.viewDay}</ToggleGroupItem>
           </ToggleGroup>
           {isManager && (
             <Button variant={showAll ? 'default' : 'outline'} size="sm" onClick={() => setShowAll(!showAll)}>
