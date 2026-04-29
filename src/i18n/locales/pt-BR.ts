@@ -1024,6 +1024,17 @@ const ptBR = {
     scheduledFor: 'Agendado para',
     allTemperatures: 'Todas as temperaturas',
     allStatuses: 'Todos os status',
+    filterByTag: 'Filtrar por tag',
+    allTags: 'Todas as tags',
+    noTagsAvailable: 'Nenhuma tag cadastrada',
+    tagsLabel: 'Tags',
+    classificationLabel: 'Classificação',
+    recipientSummary: 'Resumo dos destinatários',
+    contactsSelected: 'contatos selecionados',
+    companiesSelected: 'empresas selecionadas',
+    selectAllVisible: 'Selecionar todos visíveis',
+    clearSelection: 'Limpar seleção',
+    previewRecipients: 'Pré-visualizar lista',
 
     // Flows
     newFlow: 'Novo Fluxo',
