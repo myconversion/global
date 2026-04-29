@@ -127,7 +127,7 @@ export function CRMFlowsManager({ flows, onRefresh }: CRMFlowsManagerProps) {
             <SelectItem value="call">{t.crm.call}</SelectItem>
             <SelectItem value="email">{t.crm.email}</SelectItem>
             <SelectItem value="whatsapp">WhatsApp</SelectItem>
-            <SelectItem value="meeting">{t.crm.meetingType}</SelectItem>
+            <SelectItem value="meeting">{t.crm.meeting}</SelectItem>
           </SelectContent>
         </Select>
         <Input type="number" placeholder={t.crm.daysAfterTrigger} value={action.config.delay_days || ''} onChange={e => updateAction(index, 'delay_days', e.target.value)} />

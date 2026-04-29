@@ -48,8 +48,8 @@ export default function CRMTasksPage() {
   const FOLLOWUP_TYPE_LABELS: Record<string, string> = {
     call: t.crm.call,
     email: t.crm.email,
-    meeting: t.crm.meetingType,
-    visit: t.crm.visitType,
+    meeting: t.crm.meeting,
+    visit: t.crm.visit,
     whatsapp: 'WhatsApp',
     task: t.crm.crmTasks,
     other: t.crm.other,

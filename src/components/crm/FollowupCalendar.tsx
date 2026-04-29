@@ -43,8 +43,8 @@ export default function FollowupCalendar({ followups, viewMode, onToggleComplete
 
   const TYPE_LABELS: Record<string, string> = {
     call: t.crm.call, email: t.crm.email, whatsapp: 'WhatsApp',
-    meeting: t.crm.meetingType, visit: t.crm.visitType,
-    proposal: t.crm.proposalType,
+    meeting: t.crm.meeting, visit: t.crm.visit,
+    proposal: t.crm.proposal,
   };
 
   const navigate = (dir: 1 | -1) => {

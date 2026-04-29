@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useI18n } from '@/contexts/I18nContext';
@@ -15,7 +16,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import {
   CalendarCheck, Plus, Loader2, Phone, Mail, MessageCircle,
-  Video, MapPin, FileText, Clock, RotateCw, List, CalendarDays
+  Video, MapPin, FileText, Clock, RotateCw, List, CalendarDays,
+  Users, Building2,
 } from 'lucide-react';
 import { format, isToday, isTomorrow, isPast, parseISO } from 'date-fns';
 import FollowupCalendar, { type CalendarViewMode } from '@/components/crm/FollowupCalendar';
@@ -36,22 +38,28 @@ export default function CRMFollowupsPage() {
   const { currentCompany, supabaseUser, role } = useAuth();
   const { t, language } = useI18n();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const dateLocale = getDateLocale(language);
 
   const TYPE_LABELS: Record<string, string> = {
     call: t.crm.call, email: t.crm.email, whatsapp: 'WhatsApp',
-    meeting: t.crm.meetingType, visit: t.crm.visitType,
-    proposal: t.crm.proposalType,
+    meeting: t.crm.meeting, visit: t.crm.visit,
+    proposal: t.crm.proposal,
   };
 
   const [followups, setFollowups] = useState<Followup[]>([]);
+  const [contacts, setContacts] = useState<{ id: string; name: string }[]>([]);
+  const [companies, setCompanies] = useState<{ id: string; razao_social: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAll, setShowAll] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | CalendarViewMode>('list');
+
   const [formType, setFormType] = useState<string>('call');
   const [formScheduledAt, setFormScheduledAt] = useState('');
   const [formDescription, setFormDescription] = useState('');
+  const [formContactId, setFormContactId] = useState('none');
+  const [formCompanyId, setFormCompanyId] = useState('none');
 
   const isManager = role === 'admin' || role === 'super_admin';
 
@@ -65,18 +73,44 @@ export default function CRMFollowupsPage() {
     setLoading(false);
   };
 
+  const fetchLinkedEntities = async () => {
+    if (!currentCompany) return;
+    const [{ data: c }, { data: co }] = await Promise.all([
+      supabase.from('crm_contacts').select('id, name').eq('company_id', currentCompany.id).order('name').limit(500),
+      supabase.from('crm_companies').select('id, razao_social').eq('company_id', currentCompany.id).order('razao_social').limit(500),
+    ]);
+    if (c) setContacts(c);
+    if (co) setCompanies(co);
+  };
+
   useEffect(() => { fetchFollowups(); }, [currentCompany, showAll]);
+  useEffect(() => { fetchLinkedEntities(); }, [currentCompany]);
+
+  const resetForm = () => {
+    setFormType('call');
+    setFormScheduledAt('');
+    setFormDescription('');
+    setFormContactId('none');
+    setFormCompanyId('none');
+  };
 
   const handleCreate = async () => {
     if (!formScheduledAt || !currentCompany) return;
     const { error } = await supabase.from('crm_followups').insert({
-      company_id: currentCompany.id, type: formType as any, scheduled_at: formScheduledAt,
-      description: formDescription || null, assigned_to: supabaseUser?.id, created_by: supabaseUser?.id,
+      company_id: currentCompany.id,
+      type: formType as any,
+      scheduled_at: formScheduledAt,
+      description: formDescription || null,
+      assigned_to: supabaseUser?.id,
+      created_by: supabaseUser?.id,
+      contact_id: formContactId !== 'none' ? formContactId : null,
+      crm_company_id: formCompanyId !== 'none' ? formCompanyId : null,
     });
     if (error) toast({ title: t.crm.errorCreatingFollowup, variant: 'destructive' });
     else {
       toast({ title: t.crm.followupCreated });
-      setDialogOpen(false); setFormType('call'); setFormScheduledAt(''); setFormDescription('');
+      setDialogOpen(false);
+      resetForm();
       fetchFollowups();
     }
   };
@@ -92,6 +126,9 @@ export default function CRMFollowupsPage() {
     toast({ title: t.crm.rescheduledTomorrow });
     fetchFollowups();
   };
+
+  const contactsMap = Object.fromEntries(contacts.map(c => [c.id, c.name]));
+  const companiesMap = Object.fromEntries(companies.map(c => [c.id, c.razao_social]));
 
   const pending = followups.filter(f => !f.is_completed);
   const completed = followups.filter(f => f.is_completed);
@@ -142,6 +179,8 @@ export default function CRMFollowupsPage() {
                   const Icon = TYPE_ICONS[f.type] || Clock;
                   const date = parseISO(f.scheduled_at);
                   const overdue = isPast(date) && !isToday(date);
+                  const contactName = f.contact_id ? contactsMap[f.contact_id] : null;
+                  const companyName = f.crm_company_id ? companiesMap[f.crm_company_id] : null;
                   return (
                     <Card key={f.id} className={overdue ? 'border-destructive/50' : ''}>
                       <CardContent className="p-3 flex items-center gap-3">
@@ -152,12 +191,29 @@ export default function CRMFollowupsPage() {
                             {TYPE_LABELS[f.type]}
                             {f.description && <span className="text-muted-foreground font-normal"> — {f.description}</span>}
                           </p>
-                          <p className={`text-xs ${overdue ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>
-                            {overdue && `⚠ ${t.crm.overdueLabel} · `}
-                            {isToday(date) ? t.crm.today : isTomorrow(date) ? t.crm.tomorrow : format(date, "dd/MM/yyyy", { locale: dateLocale })}
-                            {' @ '}
-                            {format(date, 'HH:mm')}
-                          </p>
+                          <div className="flex items-center gap-3 mt-0.5 flex-wrap">
+                            <p className={`text-xs ${overdue ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>
+                              {overdue && `⚠ ${t.crm.overdueLabel} · `}
+                              {isToday(date) ? t.crm.today : isTomorrow(date) ? t.crm.tomorrow : format(date, "dd/MM/yyyy", { locale: dateLocale })}
+                              {' @ '}{format(date, 'HH:mm')}
+                            </p>
+                            {contactName && (
+                              <span
+                                className="text-xs text-muted-foreground hover:text-primary cursor-pointer flex items-center gap-1"
+                                onClick={() => navigate(`/crm/people/${f.contact_id}`)}
+                              >
+                                <Users className="w-3 h-3" />{contactName}
+                              </span>
+                            )}
+                            {companyName && (
+                              <span
+                                className="text-xs text-muted-foreground hover:text-primary cursor-pointer flex items-center gap-1"
+                                onClick={() => navigate(`/crm/companies/${f.crm_company_id}`)}
+                              >
+                                <Building2 className="w-3 h-3" />{companyName}
+                              </span>
+                            )}
+                          </div>
                         </div>
                         <Button variant="ghost" size="sm" onClick={() => snooze(f.id)} title={t.crm.reschedule}>
                           <RotateCw className="w-3.5 h-3.5" />
@@ -175,14 +231,22 @@ export default function CRMFollowupsPage() {
               <h2 className="text-sm font-semibold text-muted-foreground">{t.crm.completedLabel} ({completed.length})</h2>
               {completed.map(f => {
                 const Icon = TYPE_ICONS[f.type] || Clock;
+                const contactName = f.contact_id ? contactsMap[f.contact_id] : null;
+                const companyName = f.crm_company_id ? companiesMap[f.crm_company_id] : null;
                 return (
                   <Card key={f.id} className="opacity-60">
                     <CardContent className="p-3 flex items-center gap-3">
                       <Checkbox checked onCheckedChange={() => toggleComplete(f.id, true)} />
                       <Icon className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                      <p className="text-sm text-muted-foreground line-through flex-1">
-                        {TYPE_LABELS[f.type]} {f.description && `— ${f.description}`}
-                      </p>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-muted-foreground line-through">
+                          {TYPE_LABELS[f.type]} {f.description && `— ${f.description}`}
+                        </p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          {contactName && <span className="text-xs text-muted-foreground flex items-center gap-1"><Users className="w-3 h-3" />{contactName}</span>}
+                          {companyName && <span className="text-xs text-muted-foreground flex items-center gap-1"><Building2 className="w-3 h-3" />{companyName}</span>}
+                        </div>
+                      </div>
                     </CardContent>
                   </Card>
                 );
@@ -192,7 +256,7 @@ export default function CRMFollowupsPage() {
         </>
       )}
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>{t.crm.newFollowup}</DialogTitle>
@@ -214,13 +278,39 @@ export default function CRMFollowupsPage() {
               <Label>{t.crm.dateTime} *</Label>
               <Input type="datetime-local" value={formScheduledAt} onChange={e => setFormScheduledAt(e.target.value)} />
             </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="flex items-center gap-1.5"><Users className="w-3.5 h-3.5" />{t.crm.contact}</Label>
+                <Select value={formContactId} onValueChange={setFormContactId}>
+                  <SelectTrigger className="text-sm"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">{t.crm.noneF}</SelectItem>
+                    {contacts.map(c => (
+                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="flex items-center gap-1.5"><Building2 className="w-3.5 h-3.5" />{t.crm.company}</Label>
+                <Select value={formCompanyId} onValueChange={setFormCompanyId}>
+                  <SelectTrigger className="text-sm"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">{t.crm.noneF}</SelectItem>
+                    {companies.map(c => (
+                      <SelectItem key={c.id} value={c.id}>{c.razao_social}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
             <div className="space-y-1.5">
               <Label>{t.crm.description}</Label>
               <Textarea value={formDescription} onChange={e => setFormDescription(e.target.value)} placeholder={t.common.observations} rows={3} />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>{t.common.cancel}</Button>
+            <Button variant="outline" onClick={() => { setDialogOpen(false); resetForm(); }}>{t.common.cancel}</Button>
             <Button onClick={handleCreate} disabled={!formScheduledAt}>{t.common.create}</Button>
           </DialogFooter>
         </DialogContent>

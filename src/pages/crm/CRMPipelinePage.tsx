@@ -153,6 +153,15 @@ export default function CRMPipelinePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [quickFilter]);
 
+  // Sync viewMode to URL — clears stale ?view= params when returning to overview
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams);
+    if (viewMode === 'overview') params.delete('view');
+    else params.set('view', viewMode);
+    setSearchParams(params, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewMode]);
+
   const fetchPipelines = async () => {
     if (!currentCompany) return;
     const { data } = await supabase
