@@ -18,9 +18,9 @@ const I18nContext = createContext<I18nContextType | null>(null);
 
 export function I18nProvider({ children }: { children: ReactNode }) {
   const { currentCompany } = useAuth();
-  const [language, setLanguage] = useState<SupportedLanguage>('en');
-  const [timezone, setTimezone] = useState('America/New_York');
-  const [locale, setLocale] = useState('en-US');
+  const [language, setLanguage] = useState<SupportedLanguage>('pt-BR');
+  const [timezone, setTimezone] = useState('America/Sao_Paulo');
+  const [locale, setLocale] = useState('pt-BR');
   const [loading, setLoading] = useState(true);
 
   const companyId = currentCompany?.id;
@@ -39,9 +39,9 @@ export function I18nProvider({ children }: { children: ReactNode }) {
         .single();
 
       if (data) {
-        setLanguage((data as any).language ?? 'en');
-        setTimezone((data as any).timezone ?? 'America/New_York');
-        setLocale((data as any).locale ?? 'en-US');
+        setLanguage((data as any).language ?? 'pt-BR');
+        setTimezone((data as any).timezone ?? 'America/Sao_Paulo');
+        setLocale((data as any).locale ?? 'pt-BR');
       }
       setLoading(false);
     })();
