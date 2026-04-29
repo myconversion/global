@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { AppSidebar } from './AppSidebar';
 import { AppHeader } from './AppHeader';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { Suspense, useState } from 'react';
+import { Suspense, useState, useRef, useEffect } from 'react';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { OnboardingTour } from '@/components/shared/OnboardingTour';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
@@ -21,7 +21,12 @@ export function AppLayout() {
   const isMobile = useIsMobile();
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
+  const mainRef = useRef<HTMLDivElement>(null);
   useKeyboardShortcuts();
+
+  useEffect(() => {
+    mainRef.current?.scrollTo({ top: 0, behavior: 'instant' });
+  }, [location.pathname]);
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
@@ -37,7 +42,7 @@ export function AppLayout() {
       )}
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         <AppHeader onMobileMenuToggle={() => setMobileOpen(true)} />
-        <main className="flex-1 overflow-y-auto p-4 md:p-6">
+        <main ref={mainRef} className="flex-1 overflow-y-auto p-4 md:p-6">
           <AnimatePresence mode="popLayout">
             <motion.div
               key={location.pathname}
