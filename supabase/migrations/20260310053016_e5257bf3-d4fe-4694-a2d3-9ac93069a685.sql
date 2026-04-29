@@ -1,0 +1,1 @@
+ALTER TABLE public.companies ADD COLUMN monthly_sales_goal_type text NOT NULL DEFAULT 'amount';

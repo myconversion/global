@@ -1,0 +1,1 @@
+ALTER TABLE public.companies ADD COLUMN monthly_sales_goal numeric NOT NULL DEFAULT 100000;
