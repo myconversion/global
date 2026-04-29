@@ -328,13 +328,13 @@ export default function CRMContactDetailPage() {
               <TabsContent value="social" className="mt-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <InfoField label={t.crmDetail.instagramProfileUrl} value={displayCf.social?.instagram_url} />
-                  <InfoField label="Instagram Handle" value={displayCf.social?.instagram_handle} />
-                  <InfoField label="Instagram User ID" value={displayCf.social?.instagram_user_id} />
-                  <InfoField label="Instagram Followers" value={displayCf.social?.instagram_followers} />
-                  <InfoField label="Instagram Engagement" value={displayCf.social?.instagram_engagement} />
-                  <InfoField label="Facebook" value={displayCf.social?.facebook} />
-                  <InfoField label="LinkedIn" value={displayCf.social?.linkedin} />
-                  <InfoField label="Twitter / X" value={displayCf.social?.twitter} />
+                  <InfoField label={t.crmDetail.instagramHandle} value={displayCf.social?.instagram_handle} />
+                  <InfoField label={t.crmDetail.instagramUserId} value={displayCf.social?.instagram_user_id} />
+                  <InfoField label={t.crmDetail.instagramFollowers} value={displayCf.social?.instagram_followers} />
+                  <InfoField label={t.crmDetail.instagramEngagement} value={displayCf.social?.instagram_engagement} />
+                  <InfoField label={t.crmDetail.facebook} value={displayCf.social?.facebook} />
+                  <InfoField label={t.crmDetail.linkedin} value={displayCf.social?.linkedin} />
+                  <InfoField label={t.crmDetail.twitter} value={displayCf.social?.twitter} />
                   <InfoField label={t.crmDetail.preferredContact} value={displayCf.social?.preferred_contact} />
                   <InfoField label={t.crmDetail.language} value={displayCf.social?.language} />
                 </div>
@@ -342,11 +342,11 @@ export default function CRMContactDetailPage() {
 
               <TabsContent value="tracking" className="mt-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <InfoField label="UTM Source" value={displayCf.tracking?.utm_source} />
-                  <InfoField label="UTM Medium" value={displayCf.tracking?.utm_medium} />
-                  <InfoField label="UTM Campaign" value={displayCf.tracking?.utm_campaign} />
-                  <InfoField label="UTM Term" value={displayCf.tracking?.utm_term} />
-                  <InfoField label="UTM Content" value={displayCf.tracking?.utm_content} />
+                  <InfoField label={t.crmDetail.utmSource} value={displayCf.tracking?.utm_source} />
+                  <InfoField label={t.crmDetail.utmMedium} value={displayCf.tracking?.utm_medium} />
+                  <InfoField label={t.crmDetail.utmCampaign} value={displayCf.tracking?.utm_campaign} />
+                  <InfoField label={t.crmDetail.utmTerm} value={displayCf.tracking?.utm_term} />
+                  <InfoField label={t.crmDetail.utmContent} value={displayCf.tracking?.utm_content} />
                 </div>
               </TabsContent>
 
