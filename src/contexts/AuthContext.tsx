@@ -156,7 +156,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSupabaseUser(newSession?.user ?? null);
 
       if (newSession?.user) {
-        setTimeout(() => loadUserData(newSession.user.id), 0);
+        setTimeout(() => {
+          loadUserData(newSession.user.id).finally(() => setLoading(false));
+        }, 0);
       } else {
         setProfile(null);
         setMemberships([]);
@@ -166,17 +168,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setEnabledModules([...ALL_SECTORS]);
         setBusinessUnits([]);
         setCurrentBusinessUnitState(null);
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
       setSession(currentSession);
       setSupabaseUser(currentSession?.user ?? null);
       if (currentSession?.user) {
-        loadUserData(currentSession.user.id);
+        loadUserData(currentSession.user.id).finally(() => setLoading(false));
+      } else {
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     return () => subscription.unsubscribe();
