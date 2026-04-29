@@ -36,9 +36,9 @@ supabase functions deploy send-scheduled-message
 Copie `.env.example` para `.env` e preencha:
 
 ```
-VITE_SUPABASE_PROJECT_ID=
-VITE_SUPABASE_PUBLISHABLE_KEY=
-VITE_SUPABASE_URL=
+VITE_SUPABASE_PROJECT_ID=mbrpidhebykzpdolxzyn
+VITE_SUPABASE_PUBLISHABLE_KEY=   # obter em dashboard > Settings > API
+VITE_SUPABASE_URL=https://mbrpidhebykzpdolxzyn.supabase.co
 ```
 
 O cliente Supabase é instanciado em `src/integrations/supabase/client.ts` — não edite diretamente, use o arquivo para importar `supabase`.
@@ -105,7 +105,7 @@ Todas as rotas protegidas ficam dentro de `<ProtectedRoute><AppLayout />`. Usuá
 - Todas as alterações de schema devem ser feitas via migration em `supabase/migrations/`.
 - Nome do arquivo: `{timestamp}_{uuid}.sql` (padrão do Supabase CLI).
 - RLS está habilitado em todas as tabelas — sempre avalie políticas ao adicionar colunas.
-- Tipos TypeScript do banco ficam em `src/integrations/supabase/types.ts` — regenere com `supabase gen types typescript --project-id zgfkzetpffuvomcohwzg > src/integrations/supabase/types.ts` após migrations.
+- Tipos TypeScript do banco ficam em `src/integrations/supabase/types.ts` — regenere com `supabase gen types typescript --project-id mbrpidhebykzpdolxzyn > src/integrations/supabase/types.ts` após migrations.
 
 ### Principais tabelas
 
