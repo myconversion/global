@@ -42,11 +42,11 @@ export function AppLayout() {
       )}
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         <AppHeader onMobileMenuToggle={() => setMobileOpen(true)} />
-        <main ref={mainRef} className="flex-1 overflow-y-auto p-4 md:p-6">
+        <main ref={mainRef} className="flex-1 overflow-y-auto flex flex-col">
           <AnimatePresence mode="popLayout">
             <motion.div
               key={location.pathname}
-              className="min-h-full"
+              className="flex-1 flex flex-col p-4 md:p-6"
               variants={pageVariants}
               initial="initial"
               animate="animate"
