@@ -108,17 +108,16 @@ export default function CRMDashboardPage() {
     const fetchAll = async () => {
       setLoading(true);
 
+      // Deals are NOT date-filtered — KPIs always reflect all deals in the pipeline
       let dealsQuery = withBuFilter(supabase.from('crm_pipeline_deals').select('id, pipeline_id, stage_name, value, responsible_id, created_at').eq('company_id', companyId), buId);
       let followupsQuery = supabase.from('crm_followups').select('id, assigned_to, scheduled_at').eq('company_id', companyId).eq('is_completed', false);
       let contactsQuery = withBuFilter(supabase.from('crm_contacts').select('id, name, score, temperature, created_at, responsible_id').eq('company_id', companyId), buId);
 
       if (fromDate) {
-        dealsQuery = dealsQuery.gte('created_at', fromDate);
         followupsQuery = followupsQuery.gte('scheduled_at', fromDate);
         contactsQuery = contactsQuery.gte('created_at', fromDate);
       }
       if (toDate) {
-        dealsQuery = dealsQuery.lte('created_at', toDate);
         followupsQuery = followupsQuery.lte('scheduled_at', toDate);
         contactsQuery = contactsQuery.lte('created_at', toDate);
       }
@@ -179,9 +178,9 @@ export default function CRMDashboardPage() {
         stageMap.set(deal.stage_name, existing);
       }
 
-      // Conversion Rate = won / total deals (open + won + lost), 1 decimal
-      const totalDealsAll = openCount + wonCount + lostCount;
-      const conversionRate = totalDealsAll > 0 ? Math.round((wonCount / totalDealsAll) * 1000) / 10 : 0;
+      // Conversion Rate = won / (won + lost) — excludes open deals still in pipeline
+      const closedDeals = wonCount + lostCount;
+      const conversionRate = closedDeals > 0 ? Math.round((wonCount / closedDeals) * 1000) / 10 : 0;
 
       const funnelData = Array.from(stageMap.entries())
         .sort((a, b) => a[1].order - b[1].order)
