@@ -54,9 +54,12 @@ export default function CRMPipelinePage() {
 
   const [pipelines, setPipelines] = useState<Pipeline[]>([]);
   const [deals, setDeals] = useState<PipelineDeal[]>([]);
+  const [overviewDeals, setOverviewDeals] = useState<{ pipeline_id: string; value: number; stage_name: string }[]>([]);
   const [selectedPipelineId, setSelectedPipelineId] = useState<string>('');
   const initialView = searchParams.get('view');
-  const [viewMode, setViewMode] = useState<'kanban' | 'list'>(initialView === 'list' ? 'list' : 'kanban');
+  const [viewMode, setViewMode] = useState<'overview' | 'kanban' | 'list'>(
+    initialView === 'list' ? 'list' : initialView === 'kanban' ? 'kanban' : 'overview'
+  );
   const [showAnalysis, setShowAnalysis] = useState(initialView === 'analysis');
   const [quickFilter, setQuickFilter] = useState<'all' | 'in_progress' | 'won' | 'lost' | 'overdue'>(
     (searchParams.get('filter') as any) || 'all'
@@ -179,6 +182,15 @@ export default function CRMPipelinePage() {
     if (data) setDeals(data as PipelineDeal[]);
   };
 
+  const fetchOverviewDeals = async () => {
+    if (!currentCompany) return;
+    const { data } = await supabase
+      .from('crm_pipeline_deals')
+      .select('pipeline_id, value, stage_name')
+      .eq('company_id', currentCompany.id);
+    if (data) setOverviewDeals(data as { pipeline_id: string; value: number; stage_name: string }[]);
+  };
+
   const fetchLinkedEntities = async () => {
     if (!currentCompany) return;
     const [{ data: c }, { data: co }] = await Promise.all([
@@ -189,7 +201,7 @@ export default function CRMPipelinePage() {
     if (co) setCrmCompanies(co);
   };
 
-  useEffect(() => { fetchPipelines(); fetchLinkedEntities(); }, [currentCompany]);
+  useEffect(() => { fetchPipelines(); fetchLinkedEntities(); fetchOverviewDeals(); }, [currentCompany]);
   useEffect(() => { if (selectedPipelineId) fetchDeals(); }, [selectedPipelineId]);
 
   // ── Drag and Drop ──
@@ -396,57 +408,140 @@ export default function CRMPipelinePage() {
 
   return (
     <div className="space-y-5">
+      {/* ── Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <Kanban className="w-6 h-6 text-primary" /> {t.crmPipeline.title} <InfoTooltip text={t.crmPipeline.tooltip} />
+            <Kanban className="w-6 h-6 text-primary" />
+            {viewMode === 'overview' ? t.crmPipeline.overviewTitle : t.crmPipeline.title}
+            <InfoTooltip text={t.crmPipeline.tooltip} />
           </h1>
-          <p className="text-sm text-muted-foreground">{t.crmPipeline.subtitle}</p>
+          <p className="text-sm text-muted-foreground">
+            {viewMode === 'overview' ? t.crmPipeline.overviewSubtitle : t.crmPipeline.subtitle}
+          </p>
         </div>
-        <div className="flex gap-2">
-          {pipelines.length > 0 && (
-            <Select value={selectedPipelineId} onValueChange={setSelectedPipelineId}>
-              <SelectTrigger className="w-[220px] h-8 text-sm" title={pipelines.find(p => p.id === selectedPipelineId)?.name}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {pipelines.map(p => (
-                  <SelectItem key={p.id} value={p.id} title={p.name}>{p.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-          <div className="flex border rounded-md">
-            <Button variant={viewMode === 'kanban' ? 'default' : 'ghost'} size="sm" className="rounded-r-none h-8" onClick={() => { setViewMode('kanban'); if (quickFilter === 'won' || quickFilter === 'lost') setQuickFilter('all'); }}>
-              <LayoutGrid className="w-3.5 h-3.5" />
-            </Button>
-            <Button variant={viewMode === 'list' ? 'default' : 'ghost'} size="sm" className="rounded-l-none h-8" onClick={() => { setViewMode('list'); if (quickFilter === 'won' || quickFilter === 'lost') setQuickFilter('all'); }}>
-              <List className="w-3.5 h-3.5" />
-            </Button>
-          </div>
-          <Button type="button" size="sm" variant="outline" className="gap-1.5" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setPipelineDialogOpen(true); }} aria-label={t.crmPipeline.createFunnel}>
-            <Plus className="w-3.5 h-3.5" /> {t.crmPipeline.funnel}
-          </Button>
-          {selectedPipeline && (
-            <Button size="sm" variant="outline" className="gap-1.5 text-destructive hover:text-destructive" onClick={() => setDeleteDialogOpen(true)}>
-              <Trash2 className="w-3.5 h-3.5" />
-            </Button>
-          )}
-          {selectedPipeline && (
+        <div className="flex gap-2 flex-wrap">
+          {viewMode !== 'overview' && (
             <>
-              <Button size="sm" variant={showAnalysis ? 'default' : 'outline'} className="gap-1.5" onClick={() => setShowAnalysis(!showAnalysis)}>
-                <BarChart3 className="w-3.5 h-3.5" /> {t.crmPipeline.analysis}
+              <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setViewMode('overview')}>
+                <LayoutGrid className="w-3.5 h-3.5" /> {t.crmPipeline.backToOverview}
               </Button>
-              <Button size="sm" className="gap-1.5" onClick={() => { setFormDealStage(sortedStages[0]?.name || ''); setDealDialogOpen(true); }}>
-                <Plus className="w-3.5 h-3.5" /> {t.crmPipeline.deal}
-              </Button>
+              {pipelines.length > 0 && (
+                <Select value={selectedPipelineId} onValueChange={setSelectedPipelineId}>
+                  <SelectTrigger className="w-[200px] h-8 text-sm" title={pipelines.find(p => p.id === selectedPipelineId)?.name}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {pipelines.map(p => (
+                      <SelectItem key={p.id} value={p.id} title={p.name}>{p.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+              <div className="flex border rounded-md">
+                <Button variant={viewMode === 'kanban' ? 'default' : 'ghost'} size="sm" className="rounded-r-none h-8" onClick={() => { setViewMode('kanban'); if (quickFilter === 'won' || quickFilter === 'lost') setQuickFilter('all'); }}>
+                  <LayoutGrid className="w-3.5 h-3.5" />
+                </Button>
+                <Button variant={viewMode === 'list' ? 'default' : 'ghost'} size="sm" className="rounded-l-none h-8" onClick={() => { setViewMode('list'); if (quickFilter === 'won' || quickFilter === 'lost') setQuickFilter('all'); }}>
+                  <List className="w-3.5 h-3.5" />
+                </Button>
+              </div>
+              {selectedPipeline && (
+                <Button size="sm" variant="outline" className="gap-1.5 text-destructive hover:text-destructive" onClick={() => setDeleteDialogOpen(true)}>
+                  <Trash2 className="w-3.5 h-3.5" />
+                </Button>
+              )}
+              {selectedPipeline && (
+                <>
+                  <Button size="sm" variant={showAnalysis ? 'default' : 'outline'} className="gap-1.5" onClick={() => setShowAnalysis(!showAnalysis)}>
+                    <BarChart3 className="w-3.5 h-3.5" /> {t.crmPipeline.analysis}
+                  </Button>
+                  <Button size="sm" className="gap-1.5" onClick={() => { setFormDealStage(sortedStages[0]?.name || ''); setDealDialogOpen(true); }}>
+                    <Plus className="w-3.5 h-3.5" /> {t.crmPipeline.deal}
+                  </Button>
+                </>
+              )}
             </>
           )}
+          <Button type="button" size="sm" variant={viewMode === 'overview' ? 'default' : 'outline'} className="gap-1.5" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setPipelineDialogOpen(true); }}>
+            <Plus className="w-3.5 h-3.5" /> {t.crmPipeline.funnel}
+          </Button>
         </div>
       </div>
 
-      {/* Quick Filters */}
-      {pipelines.length > 0 && (
+      {/* ── Overview Grid ── */}
+      {viewMode === 'overview' && (
+        <>
+          {pipelines.length === 0 ? (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+                <Kanban className="w-12 h-12 text-muted-foreground/40 mb-3" />
+                <p className="text-muted-foreground font-medium">{t.crmPipeline.noFunnels}</p>
+                <p className="text-xs text-muted-foreground mt-1">{t.crmPipeline.createFirstFunnel}</p>
+                <Button type="button" size="sm" className="mt-4" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setPipelineDialogOpen(true); }}>
+                  <Plus className="w-3.5 h-3.5 mr-1" /> {t.crmPipeline.createFunnel}
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {pipelines.map(pipeline => {
+                const pipelineDeals = overviewDeals.filter(d => d.pipeline_id === pipeline.id);
+                const allPipelineStages = pipeline.stages ?? [];
+                const wonStage = allPipelineStages.find(s => s.probability === 100);
+                const lostStage = allPipelineStages.find(s => s.probability === 0);
+                const activeDeals = pipelineDeals.filter(d => d.stage_name !== wonStage?.name && d.stage_name !== lostStage?.name);
+                const totalValue = activeDeals.reduce((sum, d) => sum + d.value, 0);
+                return (
+                  <Card key={pipeline.id} className="hover:shadow-md transition-shadow">
+                    <CardContent className="p-5">
+                      <div className="flex items-start justify-between mb-1">
+                        <h3 className="font-bold text-lg text-foreground leading-tight pr-2">{pipeline.name}</h3>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7 flex-shrink-0 -mr-1 -mt-1"
+                          onClick={() => { setSelectedPipelineId(pipeline.id); setDeleteDialogOpen(true); }}
+                        >
+                          <Trash2 className="w-3.5 h-3.5 text-muted-foreground" />
+                        </Button>
+                      </div>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        {pipeline.product_service || t.crmPipeline.noDescription}
+                      </p>
+                      <div className="grid grid-cols-2 gap-3 mb-4">
+                        <div>
+                          <p className="text-xs text-muted-foreground">{t.crmPipeline.stagesCount}</p>
+                          <p className="text-2xl font-bold text-foreground">{allPipelineStages.length}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">{t.crmPipeline.leadsCount}</p>
+                          <p className="text-2xl font-bold text-foreground">{activeDeals.length}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between mb-4">
+                        <p className="text-sm text-muted-foreground">{t.crmPipeline.totalValueLabel}</p>
+                        <p className="text-sm font-bold text-primary">{formatCurrency(totalValue, language)}</p>
+                      </div>
+                      <Button
+                        className="w-full gap-2"
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => { setSelectedPipelineId(pipeline.id); setViewMode('kanban'); setQuickFilter('all'); }}
+                      >
+                        <BarChart3 className="w-3.5 h-3.5" /> {t.crmPipeline.manageFunnel}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Quick Filters — only in kanban/list mode */}
+      {viewMode !== 'overview' && pipelines.length > 0 && (
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-xs font-semibold text-muted-foreground">{t.crmPipeline.quickFilters}:</span>
           {([
@@ -472,12 +567,12 @@ export default function CRMPipelinePage() {
         </div>
       )}
 
-      {showAnalysis && selectedPipeline && (
+      {viewMode !== 'overview' && showAnalysis && selectedPipeline && (
         <CRMPipelineAnalysis stages={sortedStages} deals={filteredDeals} allDeals={deals} />
       )}
 
-      {/* Won Deals Section — shown when filter=won */}
-      {quickFilter === 'won' && selectedPipeline && (
+      {/* Won Deals Section — shown when filter=won and not overview */}
+      {viewMode !== 'overview' && quickFilter === 'won' && selectedPipeline && (
         <Card className="border-emerald-200 dark:border-emerald-900">
           <CardContent className="p-5">
             <div className="flex items-center justify-between mb-4">
@@ -531,8 +626,8 @@ export default function CRMPipelinePage() {
         </Card>
       )}
 
-      {/* Lost Deals Section — shown when filter=lost */}
-      {quickFilter === 'lost' && selectedPipeline && (
+      {/* Lost Deals Section — shown when filter=lost and not overview */}
+      {viewMode !== 'overview' && quickFilter === 'lost' && selectedPipeline && (
         <Card className="border-destructive/30">
           <CardContent className="p-5">
             <div className="flex items-center justify-between mb-4">
@@ -589,7 +684,7 @@ export default function CRMPipelinePage() {
         </Card>
       )}
 
-      {pipelines.length === 0 ? (
+      {viewMode !== 'overview' && pipelines.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16 text-center">
             <Kanban className="w-12 h-12 text-muted-foreground/40 mb-3" />
@@ -600,7 +695,7 @@ export default function CRMPipelinePage() {
             </Button>
           </CardContent>
         </Card>
-      ) : viewMode === 'kanban' && quickFilter !== 'won' && quickFilter !== 'lost' ? (
+      ) : viewMode !== 'overview' && viewMode === 'kanban' && quickFilter !== 'won' && quickFilter !== 'lost' ? (
         <DragDropContext onDragEnd={onDragEnd}>
           <div className="flex gap-3 overflow-x-auto pb-4">
             {sortedStages.map(stage => {
@@ -738,7 +833,7 @@ export default function CRMPipelinePage() {
             })}
           </div>
         </DragDropContext>
-      ) : viewMode === 'list' && quickFilter !== 'won' && quickFilter !== 'lost' ? (
+      ) : viewMode !== 'overview' && viewMode === 'list' && quickFilter !== 'won' && quickFilter !== 'lost' ? (
         <Card>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
