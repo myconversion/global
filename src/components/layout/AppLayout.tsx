@@ -41,6 +41,7 @@ export function AppLayout() {
           <AnimatePresence mode="popLayout">
             <motion.div
               key={location.pathname}
+              className="min-h-full"
               variants={pageVariants}
               initial="initial"
               animate="animate"
