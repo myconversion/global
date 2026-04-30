@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Kanban, Plus, List, LayoutGrid, AlertTriangle, BarChart3, GripVertical, Pencil, Trash2, Trophy, Calendar as CalendarIcon, FolderKanban, X } from 'lucide-react';
+import { Kanban, Plus, List, LayoutGrid, AlertTriangle, BarChart3, GripVertical, Pencil, Trash2, Trophy, Calendar as CalendarIcon, FolderKanban, X, Settings2 } from 'lucide-react';
 import { InfoTooltip } from '@/components/shared/InfoTooltip';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatCurrency } from '@/lib/format-utils';
@@ -101,6 +101,10 @@ export default function CRMPipelinePage() {
 
   // Delete pipeline dialog
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+
+  // Edit stages dialog
+  const [editStagesOpen, setEditStagesOpen] = useState(false);
+  const [editStagesData, setEditStagesData] = useState<{ name: string; originalName: string; probability: number; order: number; max_days?: number }[]>([]);
 
   // Contacts & companies for linking
   const [contacts, setContacts] = useState<{ id: string; name: string; temperature?: string | null }[]>([]);
@@ -332,8 +336,8 @@ export default function CRMPipelinePage() {
       value: Number(formDealValue) || 0,
       responsible_id: supabaseUser?.id,
       created_by: supabaseUser?.id,
-      contact_id: formContactId || null,
-      crm_company_id: formCompanyId || null,
+      contact_id: (formContactId && formContactId !== 'none') ? formContactId : null,
+      crm_company_id: (formCompanyId && formCompanyId !== 'none') ? formCompanyId : null,
     });
     if (error) {
       toast({ title: t.crmPipeline.errorCreatingDeal, variant: 'destructive' });
@@ -354,8 +358,8 @@ export default function CRMPipelinePage() {
     setEditTitle(deal.title);
     setEditValue(String(deal.value));
     setEditExpectedClose(deal.expected_close_date || '');
-    setEditContactId(deal.contact_id || '');
-    setEditCompanyId(deal.crm_company_id || '');
+    setEditContactId(deal.contact_id || 'none');
+    setEditCompanyId(deal.crm_company_id || 'none');
   };
 
   const handleUpdateDeal = async () => {
@@ -364,8 +368,8 @@ export default function CRMPipelinePage() {
       title: editTitle.trim(),
       value: Number(editValue) || 0,
       expected_close_date: editExpectedClose || null,
-      contact_id: editContactId || null,
-      crm_company_id: editCompanyId || null,
+      contact_id: (editContactId && editContactId !== 'none') ? editContactId : null,
+      crm_company_id: (editCompanyId && editCompanyId !== 'none') ? editCompanyId : null,
     }).eq('id', editDeal.id);
     if (error) {
       toast({ title: t.crmPipeline.errorUpdatingDeal, variant: 'destructive' });
@@ -383,6 +387,57 @@ export default function CRMPipelinePage() {
       setEditDeal(null);
       toast({ title: t.crmPipeline.dealRemoved });
     }
+  };
+
+  const openEditStages = () => {
+    if (!selectedPipeline) return;
+    const data = [...(selectedPipeline.stages ?? [])].sort((a, b) => a.order - b.order).map(s => ({
+      name: s.name,
+      originalName: s.name,
+      probability: s.probability,
+      order: s.order,
+      max_days: s.max_days,
+    }));
+    setEditStagesData(data);
+    setEditStagesOpen(true);
+  };
+
+  const handleSaveStages = async () => {
+    if (!selectedPipelineId || !selectedPipeline) return;
+    const renames = editStagesData
+      .filter(s => s.name.trim() && s.name.trim() !== s.originalName)
+      .map(s => ({ from: s.originalName, to: s.name.trim() }));
+
+    const newStages = editStagesData.map((s, i) => ({
+      name: s.name.trim() || s.originalName,
+      probability: s.probability,
+      order: i,
+      max_days: s.max_days,
+    }));
+
+    const { error: pipeErr } = await supabase
+      .from('crm_pipelines')
+      .update({ stages: newStages as any })
+      .eq('id', selectedPipelineId);
+
+    if (pipeErr) {
+      toast({ title: t.crmPipeline.errorSavingStages, variant: 'destructive' });
+      return;
+    }
+
+    // Cascade rename deals
+    for (const rename of renames) {
+      await supabase
+        .from('crm_pipeline_deals')
+        .update({ stage_name: rename.to })
+        .eq('pipeline_id', selectedPipelineId)
+        .eq('stage_name', rename.from);
+    }
+
+    toast({ title: t.crmPipeline.stagesSaved });
+    setEditStagesOpen(false);
+    await fetchPipelines();
+    await fetchDeals();
   };
 
   const getDaysInStage = (enteredAt: string) => {
@@ -462,6 +517,9 @@ export default function CRMPipelinePage() {
               )}
               {selectedPipeline && (
                 <>
+                  <Button size="sm" variant="outline" className="gap-1.5" onClick={openEditStages}>
+                    <Settings2 className="w-3.5 h-3.5" /> {t.crmPipeline.editStages}
+                  </Button>
                   <Button size="sm" variant={showAnalysis ? 'default' : 'outline'} className="gap-1.5" onClick={() => setShowAnalysis(!showAnalysis)}>
                     <BarChart3 className="w-3.5 h-3.5" /> {t.crmPipeline.analysis}
                   </Button>
@@ -1052,6 +1110,72 @@ export default function CRMPipelinePage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setDealDialogOpen(false)}>{t.common.cancel}</Button>
             <Button onClick={handleCreateDeal} disabled={!formDealTitle.trim()}>{t.crmPipeline.newDeal}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Stages Dialog */}
+      <Dialog open={editStagesOpen} onOpenChange={setEditStagesOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Settings2 className="w-4 h-4" /> {t.crmPipeline.editStages}
+            </DialogTitle>
+            <DialogDescription>{t.crmPipeline.editStagesDesc}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 max-h-[50vh] overflow-y-auto pr-1">
+            <div className="grid grid-cols-[1fr_80px_32px] gap-2 px-1">
+              <span className="text-xs font-medium text-muted-foreground">{t.crmPipeline.stagePlaceholder}</span>
+              <span className="text-xs font-medium text-muted-foreground text-center">{t.crmPipeline.probabilityPct}</span>
+              <span />
+            </div>
+            {editStagesData.map((stage, i) => (
+              <div key={i} className="grid grid-cols-[1fr_80px_32px] gap-2 items-center">
+                <Input
+                  value={stage.name}
+                  onChange={e => {
+                    const c = [...editStagesData];
+                    c[i] = { ...c[i], name: e.target.value };
+                    setEditStagesData(c);
+                  }}
+                  className="h-8 text-sm"
+                  placeholder={t.crmPipeline.stagePlaceholder}
+                />
+                <Input
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={stage.probability}
+                  onChange={e => {
+                    const c = [...editStagesData];
+                    c[i] = { ...c[i], probability: Number(e.target.value) };
+                    setEditStagesData(c);
+                  }}
+                  className="h-8 text-sm text-center"
+                />
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                  disabled={editStagesData.length <= 1}
+                  onClick={() => setEditStagesData(prev => prev.filter((_, idx) => idx !== i))}
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </Button>
+              </div>
+            ))}
+            <Button
+              size="sm"
+              variant="outline"
+              className="w-full gap-1.5 mt-1"
+              onClick={() => setEditStagesData(prev => [...prev, { name: '', originalName: '', probability: 50, order: prev.length }])}
+            >
+              <Plus className="w-3.5 h-3.5" /> {t.crmPipeline.stagePlaceholder}
+            </Button>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditStagesOpen(false)}>{t.common.cancel}</Button>
+            <Button onClick={handleSaveStages} disabled={editStagesData.some(s => !s.name.trim())}>{t.common.save}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

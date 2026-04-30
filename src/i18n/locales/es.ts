@@ -1943,6 +1943,11 @@ const es: TranslationKeys = {
     summaryExpenses: 'Asientos de gastos de mano de obra y suministros',
     summaryCrmStatus: 'Contacto/Empresa del CRM marcados como Cliente',
     confirmCheckbox: 'Revisé los datos arriba y confirmo la conversión',
+    editStages: 'Editar Etapas',
+    editStagesDesc: 'Renombra las etapas y ajusta probabilidades. Los negocios existentes se actualizarán automáticamente.',
+    stagesSaved: 'Etapas actualizadas con éxito',
+    errorSavingStages: 'Error al guardar etapas',
+    probabilityPct: 'Prob. (%)',
   },
   crmDetail: {
     back: 'Volver',

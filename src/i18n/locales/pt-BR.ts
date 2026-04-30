@@ -1971,6 +1971,11 @@ const ptBR = {
     summaryExpenses: 'Lançamentos de despesa de mão de obra e suprimentos',
     summaryCrmStatus: 'Contato/Empresa do CRM marcados como Cliente',
     confirmCheckbox: 'Revisei os dados acima e confirmo a conversão',
+    editStages: 'Editar Etapas',
+    editStagesDesc: 'Renomeie as etapas e ajuste as probabilidades. Os negócios existentes serão atualizados automaticamente.',
+    stagesSaved: 'Etapas atualizadas com sucesso',
+    errorSavingStages: 'Erro ao salvar etapas',
+    probabilityPct: 'Prob. (%)',
   },
   crmDetail: {
     back: 'Voltar',

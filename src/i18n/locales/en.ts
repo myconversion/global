@@ -1943,6 +1943,11 @@ const en: TranslationKeys = {
     summaryExpenses: 'Labor and supplies expense entries',
     summaryCrmStatus: 'CRM contact/company marked as Client',
     confirmCheckbox: 'I reviewed the data above and confirm the conversion',
+    editStages: 'Edit Stages',
+    editStagesDesc: 'Rename stages and adjust probabilities. Existing deals will be updated automatically.',
+    stagesSaved: 'Stages updated successfully',
+    errorSavingStages: 'Error saving stages',
+    probabilityPct: 'Prob. (%)',
   },
   crmDetail: {
     back: 'Back',
