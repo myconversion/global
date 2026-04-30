@@ -18,6 +18,11 @@ type FieldKey = 'name' | 'email' | 'phone' | 'cpf' | 'position' | 'origin' | 'ta
 const ORIGIN_MAP: Record<string, string> = {
   indicação: 'indicacao', indicacao: 'indicacao', inbound: 'inbound', outbound: 'outbound',
   'social media': 'social_media', social_media: 'social_media', evento: 'evento', other: 'other', outro: 'other',
+  facebook: 'facebook', fb: 'facebook',
+  instagram: 'instagram', ig: 'instagram',
+  site: 'site', website: 'site',
+  'prospecção ativa': 'prospeccao_ativa', prospeccao_ativa: 'prospeccao_ativa', 'prospeccão ativa': 'prospeccao_ativa',
+  'mídia offline': 'midia_offline', midia_offline: 'midia_offline', 'midia offline': 'midia_offline',
 };
 
 interface ImportContactsDialogProps {

@@ -62,6 +62,8 @@ export default function CRMPeoplePage() {
   const ORIGIN_LABELS: Record<string, string> = {
     indicacao: t.crm.indicacao, inbound: 'Inbound', outbound: 'Outbound',
     social_media: 'Social Media', evento: t.crm.evento, other: t.crm.other,
+    facebook: t.crm.facebook, instagram: t.crm.instagram, site: t.crm.site,
+    prospeccao_ativa: t.crm.prospeccao_ativa, midia_offline: t.crm.midia_offline,
   };
 
   const [contacts, setContacts] = useState<CRMContact[]>([]);

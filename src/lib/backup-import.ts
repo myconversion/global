@@ -132,13 +132,17 @@ export interface ImportResult {
   errors: string[];
 }
 
-function mapSource(source: string | null): 'indicacao' | 'inbound' | 'outbound' | 'social_media' | 'evento' | 'other' {
+function mapSource(source: string | null): 'indicacao' | 'inbound' | 'outbound' | 'social_media' | 'evento' | 'other' | 'facebook' | 'instagram' | 'site' | 'prospeccao_ativa' | 'midia_offline' {
   if (!source) return 'other';
   const s = source.toUpperCase();
   if (s.includes('INDICACAO') || s.includes('INDICAÇÃO') || s.includes('REFERRAL')) return 'indicacao';
-  if (s.includes('INBOUND') || s.includes('SITE') || s.includes('LANDING')) return 'inbound';
-  if (s.includes('OUTBOUND') || s.includes('COLD') || s.includes('PROSPECÇÃO')) return 'outbound';
-  if (s.includes('SOCIAL') || s.includes('INSTAGRAM') || s.includes('FACEBOOK')) return 'social_media';
+  if (s.includes('FACEBOOK') || s.includes('FB')) return 'facebook';
+  if (s.includes('INSTAGRAM') || s.includes('IG')) return 'instagram';
+  if (s.includes('SITE') || s.includes('LANDING') || s.includes('WEBSITE')) return 'site';
+  if (s.includes('PROSPECÇÃO') || s.includes('PROSPECCAO') || s.includes('OUTBOUND') || s.includes('COLD')) return 'prospeccao_ativa';
+  if (s.includes('OFFLINE') || s.includes('MÍDIA') || s.includes('MIDIA')) return 'midia_offline';
+  if (s.includes('INBOUND')) return 'inbound';
+  if (s.includes('SOCIAL')) return 'social_media';
   if (s.includes('EVENTO') || s.includes('EVENT')) return 'evento';
   return 'other';
 }

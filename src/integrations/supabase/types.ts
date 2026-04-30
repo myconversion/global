@@ -2400,6 +2400,11 @@ export type Database = {
         | "social_media"
         | "evento"
         | "other"
+        | "facebook"
+        | "instagram"
+        | "site"
+        | "prospeccao_ativa"
+        | "midia_offline"
       crm_temperature: "cold" | "warm" | "hot"
       deal_stage:
         | "lead"
@@ -2599,6 +2604,11 @@ export const Constants = {
         "social_media",
         "evento",
         "other",
+        "facebook",
+        "instagram",
+        "site",
+        "prospeccao_ativa",
+        "midia_offline",
       ],
       crm_temperature: ["cold", "warm", "hot"],
       deal_stage: [

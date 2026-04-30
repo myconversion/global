@@ -85,6 +85,8 @@ export default function CRMContactDetailPage() {
   const ORIGIN_LABELS: Record<string, string> = {
     indicacao: t.crmDetail.originIndicacao, inbound: t.crmDetail.originInbound, outbound: t.crmDetail.originOutbound,
     social_media: t.crmDetail.originSocialMedia, evento: t.crmDetail.originEvento, other: t.crmDetail.originOther,
+    facebook: t.crmDetail.originFacebook, instagram: t.crmDetail.originInstagram, site: t.crmDetail.originSite,
+    prospeccao_ativa: t.crmDetail.originProspeccaoAtiva, midia_offline: t.crmDetail.originMidiaOffline,
   };
 
   const [contact, setContact] = useState<any>(null);
