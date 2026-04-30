@@ -85,6 +85,7 @@ export default function CRMPipelinePage() {
   const [formDealTitle, setFormDealTitle] = useState('');
   const [formDealValue, setFormDealValue] = useState('');
   const [formDealStage, setFormDealStage] = useState('');
+  const [formDealExpectedClose, setFormDealExpectedClose] = useState('');
 
   // Edit deal dialog
   const [editDeal, setEditDeal] = useState<PipelineDeal | null>(null);
@@ -109,14 +110,14 @@ export default function CRMPipelinePage() {
   // Contacts & companies for linking
   const [contacts, setContacts] = useState<{ id: string; name: string; temperature?: string | null }[]>([]);
   const [crmCompanies, setCrmCompanies] = useState<{ id: string; razao_social: string }[]>([]);
-  const [formContactId, setFormContactId] = useState('');
-  const [formCompanyId, setFormCompanyId] = useState('');
-  const [editContactId, setEditContactId] = useState('');
-  const [editCompanyId, setEditCompanyId] = useState('');
+  const [formContactId, setFormContactId] = useState('none');
+  const [formCompanyId, setFormCompanyId] = useState('none');
+  const [editContactId, setEditContactId] = useState('none');
+  const [editCompanyId, setEditCompanyId] = useState('none');
 
   const selectedPipeline = pipelines.find(p => p.id === selectedPipelineId);
   const sortedStages = useMemo(() =>
-    selectedPipeline?.stages?.sort((a, b) => a.order - b.order) ?? [],
+    selectedPipeline?.stages ? [...selectedPipeline.stages].sort((a, b) => a.order - b.order) : [],
     [selectedPipeline]
   );
 
@@ -327,13 +328,16 @@ export default function CRMPipelinePage() {
 
   const handleCreateDeal = async () => {
     if (!formDealTitle.trim() || !currentCompany || !selectedPipelineId) return;
-    const stage = formDealStage || sortedStages[0]?.name || '';
+    // Default to first non-won/non-lost stage, or first stage
+    const activeStages = sortedStages.filter(s => s.probability > 0 && s.probability < 100);
+    const stage = formDealStage || activeStages[0]?.name || sortedStages[0]?.name || '';
     const { error } = await supabase.from('crm_pipeline_deals').insert({
       company_id: currentCompany.id,
       pipeline_id: selectedPipelineId,
       stage_name: stage,
       title: formDealTitle.trim(),
       value: Number(formDealValue) || 0,
+      expected_close_date: formDealExpectedClose || null,
       responsible_id: supabaseUser?.id,
       created_by: supabaseUser?.id,
       contact_id: (formContactId && formContactId !== 'none') ? formContactId : null,
@@ -347,8 +351,9 @@ export default function CRMPipelinePage() {
       setFormDealTitle('');
       setFormDealValue('');
       setFormDealStage('');
-      setFormContactId('');
-      setFormCompanyId('');
+      setFormDealExpectedClose('');
+      setFormContactId('none');
+      setFormCompanyId('none');
       fetchDeals();
     }
   };
@@ -1045,18 +1050,49 @@ export default function CRMPipelinePage() {
               <Input value={formProductService} onChange={e => setFormProductService(e.target.value)} placeholder={t.placeholders.productService} />
             </div>
             <div className="space-y-1.5">
-              <Label>{t.crmPipeline.stages}</Label>
-              {formStages.map((stage, i) => (
-                <div key={i} className="flex gap-2">
-                  <Input value={stage.name} onChange={e => { const c = [...formStages]; c[i] = { ...c[i], name: e.target.value }; setFormStages(c); }} className="flex-1 h-8 text-sm" placeholder={t.crmPipeline.stagePlaceholder} />
-                  <Input type="number" min="0" max="100" value={stage.probability} onChange={e => { const c = [...formStages]; c[i] = { ...c[i], probability: Number(e.target.value) }; setFormStages(c); }} className="w-20 h-8 text-sm" placeholder="%" />
-                </div>
-              ))}
+              <div className="flex items-center justify-between">
+                <Label>{t.crmPipeline.stages}</Label>
+                <span className="text-xs text-muted-foreground">{t.crmPipeline.probabilityPct}</span>
+              </div>
+              <div className="space-y-1.5 max-h-52 overflow-y-auto pr-0.5">
+                {formStages.map((stage, i) => (
+                  <div key={i} className="grid grid-cols-[1fr_64px_28px] gap-1.5 items-center">
+                    <Input
+                      value={stage.name}
+                      onChange={e => { const c = [...formStages]; c[i] = { ...c[i], name: e.target.value }; setFormStages(c); }}
+                      className="h-8 text-sm"
+                      placeholder={t.crmPipeline.stagePlaceholder}
+                    />
+                    <Input
+                      type="number" min="0" max="100"
+                      value={stage.probability}
+                      onChange={e => { const c = [...formStages]; c[i] = { ...c[i], probability: Number(e.target.value) }; setFormStages(c); }}
+                      className="h-8 text-sm text-center"
+                      placeholder="%"
+                    />
+                    <Button
+                      type="button" size="icon" variant="ghost"
+                      className="h-8 w-7 text-muted-foreground hover:text-destructive"
+                      disabled={formStages.length <= 1}
+                      onClick={() => setFormStages(prev => prev.filter((_, idx) => idx !== i))}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+              <Button
+                type="button" size="sm" variant="outline"
+                className="w-full gap-1.5 mt-1"
+                onClick={() => setFormStages(prev => [...prev, { name: '', probability: 50 }])}
+              >
+                <Plus className="w-3.5 h-3.5" /> {t.crmPipeline.stagePlaceholder}
+              </Button>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setPipelineDialogOpen(false)}>{t.common.cancel}</Button>
-            <Button onClick={handleCreatePipeline} disabled={!formPipelineName.trim()}>{t.crmPipeline.createFunnel}</Button>
+            <Button variant="outline" onClick={() => { setPipelineDialogOpen(false); setFormStages(defaultStages); setFormPipelineName(''); setFormProductService(''); }}>{t.common.cancel}</Button>
+            <Button onClick={handleCreatePipeline} disabled={!formPipelineName.trim() || formStages.some(s => !s.name.trim())}>{t.crmPipeline.createFunnel}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1077,38 +1113,54 @@ export default function CRMPipelinePage() {
               <Label>{t.crmPipeline.dealValue}</Label>
               <Input type="number" value={formDealValue} onChange={e => setFormDealValue(e.target.value)} placeholder="0" />
             </div>
-            <div className="space-y-1.5">
-              <Label>{t.crmPipeline.initialStage}</Label>
-              <Select value={formDealStage} onValueChange={setFormDealStage}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {sortedStages.map(s => <SelectItem key={s.name} value={s.name}>{s.name} ({s.probability}%)</SelectItem>)}
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>{t.crmPipeline.initialStage}</Label>
+                <Select
+                  value={formDealStage || (sortedStages.filter(s => s.probability > 0 && s.probability < 100)[0]?.name ?? sortedStages[0]?.name ?? '')}
+                  onValueChange={setFormDealStage}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {sortedStages.map(s => <SelectItem key={s.name} value={s.name}>{s.name} ({s.probability}%)</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>{t.crmPipeline.expectedClose}</Label>
+                <Input
+                  type="date"
+                  value={formDealExpectedClose}
+                  onChange={e => setFormDealExpectedClose(e.target.value)}
+                  className="h-9 text-sm"
+                />
+              </div>
             </div>
-            <div className="space-y-1.5">
-              <Label>{t.crmPipeline.contactLabel}</Label>
-              <Select value={formContactId} onValueChange={setFormContactId}>
-                <SelectTrigger><SelectValue placeholder={t.crmPipeline.noneM} /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">{t.crmPipeline.noneM}</SelectItem>
-                  {contacts.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label>{t.crmPipeline.companyLabel}</Label>
-              <Select value={formCompanyId} onValueChange={setFormCompanyId}>
-                <SelectTrigger><SelectValue placeholder={t.crmPipeline.noneF} /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">{t.crmPipeline.noneF}</SelectItem>
-                  {crmCompanies.map(c => <SelectItem key={c.id} value={c.id}>{c.razao_social}</SelectItem>)}
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>{t.crmPipeline.contactLabel}</Label>
+                <Select value={formContactId} onValueChange={setFormContactId}>
+                  <SelectTrigger><SelectValue placeholder={t.crmPipeline.noneM} /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">{t.crmPipeline.noneM}</SelectItem>
+                    {contacts.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>{t.crmPipeline.companyLabel}</Label>
+                <Select value={formCompanyId} onValueChange={setFormCompanyId}>
+                  <SelectTrigger><SelectValue placeholder={t.crmPipeline.noneF} /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">{t.crmPipeline.noneF}</SelectItem>
+                    {crmCompanies.map(c => <SelectItem key={c.id} value={c.id}>{c.razao_social}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDealDialogOpen(false)}>{t.common.cancel}</Button>
+            <Button variant="outline" onClick={() => { setDealDialogOpen(false); setFormDealTitle(''); setFormDealValue(''); setFormDealStage(''); setFormDealExpectedClose(''); setFormContactId('none'); setFormCompanyId('none'); }}>{t.common.cancel}</Button>
             <Button onClick={handleCreateDeal} disabled={!formDealTitle.trim()}>{t.crmPipeline.newDeal}</Button>
           </DialogFooter>
         </DialogContent>
