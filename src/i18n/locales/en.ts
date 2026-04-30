@@ -633,6 +633,10 @@ const en: TranslationKeys = {
     noName: 'No name',
     fullName: 'Full name',
     sector: 'Sector',
+    assignToTeams: 'Assign to Teams',
+    selectTeams: 'Select teams...',
+    noTeams: 'No teams registered',
+    teamsMember: 'Teams',
   },
   greeting: {
     goodMorning: 'Good morning',

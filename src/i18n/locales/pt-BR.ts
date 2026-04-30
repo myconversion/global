@@ -631,6 +631,10 @@ const ptBR = {
     noName: 'Sem nome',
     fullName: 'Nome completo',
     sector: 'Setor',
+    assignToTeams: 'Vincular a Times',
+    selectTeams: 'Selecione os times...',
+    noTeams: 'Nenhum time cadastrado',
+    teamsMember: 'Times',
   },
   greeting: {
     goodMorning: 'Bom dia',
