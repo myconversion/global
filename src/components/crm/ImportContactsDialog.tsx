@@ -17,12 +17,15 @@ type FieldKey = 'name' | 'email' | 'phone' | 'cpf' | 'position' | 'origin' | 'ta
 
 const ORIGIN_MAP: Record<string, string> = {
   indicação: 'indicacao', indicacao: 'indicacao', inbound: 'inbound', outbound: 'outbound',
-  'social media': 'social_media', social_media: 'social_media', evento: 'evento', other: 'other', outro: 'other',
+  'social media': 'social_media', social_media: 'social_media', evento: 'evento', other: 'other', outro: 'other', outros: 'other',
   facebook: 'facebook', fb: 'facebook',
   instagram: 'instagram', ig: 'instagram',
   site: 'site', website: 'site',
   'prospecção ativa': 'prospeccao_ativa', prospeccao_ativa: 'prospeccao_ativa', 'prospeccão ativa': 'prospeccao_ativa',
   'mídia offline': 'midia_offline', midia_offline: 'midia_offline', 'midia offline': 'midia_offline',
+  'indicação gestor': 'indicacao_gestor', indicacao_gestor: 'indicacao_gestor', 'indicacão gestor': 'indicacao_gestor', 'manager referral': 'indicacao_gestor',
+  parcerias: 'parcerias', parceria: 'parcerias', partnerships: 'parcerias', partnership: 'parcerias',
+  'indicação cliente': 'indicacao_cliente', indicacao_cliente: 'indicacao_cliente', 'indicacão cliente': 'indicacao_cliente', 'client referral': 'indicacao_cliente',
 };
 
 interface ImportContactsDialogProps {

@@ -132,9 +132,12 @@ export interface ImportResult {
   errors: string[];
 }
 
-function mapSource(source: string | null): 'indicacao' | 'inbound' | 'outbound' | 'social_media' | 'evento' | 'other' | 'facebook' | 'instagram' | 'site' | 'prospeccao_ativa' | 'midia_offline' {
+function mapSource(source: string | null): 'indicacao' | 'inbound' | 'outbound' | 'social_media' | 'evento' | 'other' | 'facebook' | 'instagram' | 'site' | 'prospeccao_ativa' | 'midia_offline' | 'indicacao_gestor' | 'parcerias' | 'indicacao_cliente' {
   if (!source) return 'other';
   const s = source.toUpperCase();
+  if (s.includes('GESTOR') || s.includes('MANAGER')) return 'indicacao_gestor';
+  if (s.includes('PARCERIA') || s.includes('PARTNER')) return 'parcerias';
+  if (s.includes('INDICACAO CLIENTE') || s.includes('INDICAÇÃO CLIENTE') || s.includes('CLIENT REFERRAL')) return 'indicacao_cliente';
   if (s.includes('INDICACAO') || s.includes('INDICAÇÃO') || s.includes('REFERRAL')) return 'indicacao';
   if (s.includes('FACEBOOK') || s.includes('FB')) return 'facebook';
   if (s.includes('INSTAGRAM') || s.includes('IG')) return 'instagram';

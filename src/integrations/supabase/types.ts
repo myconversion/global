@@ -2405,6 +2405,9 @@ export type Database = {
         | "site"
         | "prospeccao_ativa"
         | "midia_offline"
+        | "indicacao_gestor"
+        | "parcerias"
+        | "indicacao_cliente"
       crm_temperature: "cold" | "warm" | "hot"
       deal_stage:
         | "lead"
@@ -2609,6 +2612,9 @@ export const Constants = {
         "site",
         "prospeccao_ativa",
         "midia_offline",
+        "indicacao_gestor",
+        "parcerias",
+        "indicacao_cliente",
       ],
       crm_temperature: ["cold", "warm", "hot"],
       deal_stage: [

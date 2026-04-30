@@ -102,6 +102,7 @@ export default function CRMCompanyDetailPage() {
     social_media: t.crmDetail.originSocialMedia, evento: t.crmDetail.originEvento, other: t.crmDetail.originOther,
     facebook: t.crmDetail.originFacebook, instagram: t.crmDetail.originInstagram, site: t.crmDetail.originSite,
     prospeccao_ativa: t.crmDetail.originProspeccaoAtiva, midia_offline: t.crmDetail.originMidiaOffline,
+    indicacao_gestor: t.crmDetail.originIndicacaoGestor, parcerias: t.crmDetail.originParcerias, indicacao_cliente: t.crmDetail.originIndicacaoCliente,
   };
 
   const [company, setCompany] = useState<any>(null);

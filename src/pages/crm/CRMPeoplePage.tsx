@@ -64,6 +64,7 @@ export default function CRMPeoplePage() {
     social_media: 'Social Media', evento: t.crm.evento, other: t.crm.other,
     facebook: t.crm.facebook, instagram: t.crm.instagram, site: t.crm.site,
     prospeccao_ativa: t.crm.prospeccao_ativa, midia_offline: t.crm.midia_offline,
+    indicacao_gestor: t.crm.indicacao_gestor, parcerias: t.crm.parcerias, indicacao_cliente: t.crm.indicacao_cliente,
   };
 
   const [contacts, setContacts] = useState<CRMContact[]>([]);
