@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PageHeader } from '@/components/layout/PageHeader';
@@ -7,23 +7,19 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
 import { Separator } from '@/components/ui/separator';
 import {
   FolderKanban, Plus, Trash2, Archive, Search, Filter,
-  CalendarIcon, Pencil, X, LayoutGrid, Clock, User
+  Pencil, X, LayoutGrid, Clock, User
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { useProjectsContext } from '@/contexts/ProjectsContext';
 import { useI18n } from '@/contexts/I18nContext';
 import { getDateLocale } from '@/i18n/date-locale';
+import { ProjectFormDialog } from '@/components/projects/ProjectFormDialog';
 
 import { Project, ProjectStatus } from '@/types/index';
 import { useToast } from '@/hooks/use-toast';
@@ -35,6 +31,40 @@ const STATUS_COLORS: Record<ProjectStatus, string> = {
   archived: 'bg-muted text-muted-foreground',
 };
 
+// ── Reusable confirm dialog for archive / delete ─────────────────────────────
+
+interface ProjectConfirmDialogProps {
+  open: boolean;
+  title: string;
+  description: string;
+  confirmLabel: string;
+  confirmClassName?: string;
+  onConfirm: () => void;
+  onClose: () => void;
+}
+
+const ProjectConfirmDialog = React.memo(function ProjectConfirmDialog({
+  open, title, description, confirmLabel, confirmClassName, onConfirm, onClose,
+}: ProjectConfirmDialogProps) {
+  const { t } = useI18n();
+  return (
+    <AlertDialog open={open} onOpenChange={v => { if (!v) onClose(); }}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{title}</AlertDialogTitle>
+          <AlertDialogDescription>{description}</AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>{t.common.cancel}</AlertDialogCancel>
+          <AlertDialogAction className={confirmClassName} onClick={onConfirm}>{confirmLabel}</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+});
+
+// ── Page ─────────────────────────────────────────────────────────────────────
+
 export default function ProjectsPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -45,12 +75,12 @@ export default function ProjectsPage() {
     getProjectDeliverables, getProjectProgress, members,
   } = useProjectsContext();
 
-  const STATUS_LABELS: Record<ProjectStatus, string> = {
+  const STATUS_LABELS = useMemo<Record<ProjectStatus, string>>(() => ({
     active: t.projects.active,
     paused: t.projects.paused,
     completed: t.projects.completed,
     archived: t.projects.archived,
-  };
+  }), [t]);
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -58,13 +88,6 @@ export default function ProjectsPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
-  const [formName, setFormName] = useState('');
-  const [formDescription, setFormDescription] = useState('');
-  const [formClientName, setFormClientName] = useState('');
-  const [formStatus, setFormStatus] = useState<ProjectStatus>('active');
-  const [formOwner, setFormOwner] = useState('');
-  const [formStartDate, setFormStartDate] = useState<Date | undefined>();
-  const [formEndDate, setFormEndDate] = useState<Date | undefined>();
   const [archiveTarget, setArchiveTarget] = useState<Project | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Project | null>(null);
 
@@ -79,53 +102,25 @@ export default function ProjectsPage() {
 
   const selectedProject = selectedId ? projects.find(p => p.id === selectedId) : null;
 
-  const resetForm = () => {
-    setFormName(''); setFormDescription(''); setFormClientName(''); setFormStatus('active');
-    setFormOwner(''); setFormStartDate(undefined); setFormEndDate(undefined); setEditingProject(null);
-  };
+  const openCreate = useCallback(() => {
+    setEditingProject(null);
+    setDialogOpen(true);
+  }, []);
 
-  const openCreate = () => { resetForm(); setDialogOpen(true); };
+  const openEdit = useCallback((project: Project) => {
+    setEditingProject(project);
+    setDialogOpen(true);
+  }, []);
 
-  const openEdit = (project: Project) => {
-    setFormName(project.name); setFormDescription(project.description ?? '');
-    setFormClientName(project.clientId); setFormStatus(project.status);
-    setFormOwner(project.ownerId);
-    setFormStartDate(project.startDate ? new Date(project.startDate) : undefined);
-    setFormEndDate(project.endDate ? new Date(project.endDate) : undefined);
-    setEditingProject(project); setDialogOpen(true);
-  };
-
-  const handleSave = () => {
-    if (!formName.trim()) return;
-    if (editingProject) {
-      updateProject(editingProject.id, {
-        name: formName.trim(), description: formDescription, status: formStatus,
-        ownerId: formOwner || undefined,
-        startDate: formStartDate ? format(formStartDate, 'yyyy-MM-dd') : undefined,
-        endDate: formEndDate ? format(formEndDate, 'yyyy-MM-dd') : undefined,
-      });
-      toast({ title: t.projects.projectUpdated });
-    } else {
-      createProject({
-        name: formName.trim(), clientId: '', description: formDescription, status: formStatus,
-        ownerId: formOwner || undefined,
-        startDate: formStartDate ? format(formStartDate, 'yyyy-MM-dd') : undefined,
-        endDate: formEndDate ? format(formEndDate, 'yyyy-MM-dd') : undefined,
-      });
-      toast({ title: t.projects.projectCreated });
-    }
-    setDialogOpen(false); resetForm();
-  };
-
-  const handleArchive = () => {
+  const handleArchive = useCallback(() => {
     if (!archiveTarget) return;
     archiveProject(archiveTarget.id);
     if (selectedId === archiveTarget.id) setSelectedId(null);
     setArchiveTarget(null);
     toast({ title: t.projects.projectArchived });
-  };
+  }, [archiveTarget, archiveProject, selectedId, toast, t]);
 
-  const handleDelete = async () => {
+  const handleDelete = useCallback(async () => {
     if (!deleteTarget) return;
     const result = await deleteProject(deleteTarget.id);
     if (result && !result.success) {
@@ -135,9 +130,12 @@ export default function ProjectsPage() {
       toast({ title: t.projects.projectDeleted });
     }
     setDeleteTarget(null);
-  };
+  }, [deleteTarget, deleteProject, selectedId, toast, t]);
 
-  const getMemberName = (id: string) => members.find(m => m.id === id)?.name ?? '—';
+  const getMemberName = useCallback(
+    (id: string) => members.find(m => m.id === id)?.name ?? '—',
+    [members],
+  );
 
   return (
     <div>
@@ -278,91 +276,32 @@ export default function ProjectsPage() {
         </AnimatePresence>
       </div>
 
-      <Dialog open={dialogOpen} onOpenChange={v => { if (!v) resetForm(); setDialogOpen(v); }}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>{editingProject ? t.projects.editProject : t.projects.newProject}</DialogTitle>
-            <DialogDescription>{editingProject ? t.projects.description : t.projects.description}</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2"><Label>{t.projects.projectName}</Label><Input placeholder={t.projects.projectName} value={formName} onChange={e => setFormName(e.target.value)} /></div>
-            <div className="space-y-2"><Label>{t.common.description}</Label><Textarea value={formDescription} onChange={e => setFormDescription(e.target.value)} rows={3} /></div>
-            {!editingProject && (
-              <div className="space-y-2"><Label>{t.projects.clientName}</Label><Input value={formClientName} onChange={e => setFormClientName(e.target.value)} /></div>
-            )}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label>{t.common.status}</Label>
-                <Select value={formStatus} onValueChange={v => setFormStatus(v as ProjectStatus)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{Object.entries(STATUS_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>{t.projects.owner}</Label>
-                <Select value={formOwner} onValueChange={setFormOwner}>
-                  <SelectTrigger><SelectValue placeholder={t.projects.selectOwner} /></SelectTrigger>
-                  <SelectContent>{members.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label>{t.projects.startDate}</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !formStartDate && "text-muted-foreground")}>
-                      <CalendarIcon className="mr-2 h-4 w-4" />{formStartDate ? format(formStartDate, "dd/MM/yyyy") : t.projects.selectOwner}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={formStartDate} onSelect={setFormStartDate} initialFocus className="p-3 pointer-events-auto" /></PopoverContent>
-                </Popover>
-              </div>
-              <div className="space-y-2">
-                <Label>{t.projects.endDate}</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !formEndDate && "text-muted-foreground")}>
-                      <CalendarIcon className="mr-2 h-4 w-4" />{formEndDate ? format(formEndDate, "dd/MM/yyyy") : t.projects.selectOwner}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={formEndDate} onSelect={setFormEndDate} initialFocus className="p-3 pointer-events-auto" /></PopoverContent>
-                </Popover>
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => { resetForm(); setDialogOpen(false); }}>{t.common.cancel}</Button>
-            <Button onClick={handleSave} disabled={!formName.trim()}>{editingProject ? t.common.save : t.projects.newProject}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ProjectFormDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        editingProject={editingProject}
+        showStatusField
+        showClientNameField
+      />
 
-      <AlertDialog open={!!archiveTarget} onOpenChange={v => { if (!v) setArchiveTarget(null); }}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t.projects.archiveProject}</AlertDialogTitle>
-            <AlertDialogDescription>"{archiveTarget?.name}" {t.projects.archiveProjectDesc}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t.common.cancel}</AlertDialogCancel>
-            <AlertDialogAction onClick={handleArchive}>{t.projects.archive}</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ProjectConfirmDialog
+        open={!!archiveTarget}
+        title={t.projects.archiveProject}
+        description={`"${archiveTarget?.name}" ${t.projects.archiveProjectDesc}`}
+        confirmLabel={t.projects.archive}
+        onConfirm={handleArchive}
+        onClose={() => setArchiveTarget(null)}
+      />
 
-      <AlertDialog open={!!deleteTarget} onOpenChange={v => { if (!v) setDeleteTarget(null); }}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t.projects.deleteProject}</AlertDialogTitle>
-            <AlertDialogDescription>"{deleteTarget?.name}" {t.projects.deleteProjectDesc}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t.common.cancel}</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">{t.common.delete}</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ProjectConfirmDialog
+        open={!!deleteTarget}
+        title={t.projects.deleteProject}
+        description={`"${deleteTarget?.name}" ${t.projects.deleteProjectDesc}`}
+        confirmLabel={t.common.delete}
+        confirmClassName="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+        onConfirm={handleDelete}
+        onClose={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }
