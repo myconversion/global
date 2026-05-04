@@ -77,6 +77,11 @@ export function ImportContactsDialog({ open, onOpenChange, onSuccess }: ImportCo
   };
 
   const parseFile = useCallback((file: File) => {
+    const MAX_SIZE = 10 * 1024 * 1024; // 10 MB
+    if (file.size > MAX_SIZE) {
+      toast({ title: 'Arquivo muito grande', description: 'O tamanho máximo é 10 MB.', variant: 'destructive' });
+      return;
+    }
     setFileName(file.name);
     const reader = new FileReader();
     reader.onload = (e) => {

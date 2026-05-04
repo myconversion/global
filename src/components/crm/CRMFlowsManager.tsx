@@ -110,12 +110,12 @@ export function CRMFlowsManager({ flows, onRefresh }: CRMFlowsManagerProps) {
     if (action.type === 'send_email') return (
       <div className="space-y-2 mt-2">
         <Input placeholder={t.crm.emailSubjectPlaceholder} value={action.config.subject || ''} onChange={e => updateAction(index, 'subject', e.target.value)} />
-        <Textarea placeholder={t.crm.messagePlaceholder} value={action.config.body || ''} onChange={e => updateAction(index, 'body', e.target.value)} rows={2} />
+        <Textarea placeholder={t.crm.messagePlaceholder} value={action.config.body || ''} onChange={e => updateAction(index, 'body', e.target.value)} rows={2} maxLength={4000} />
       </div>
     );
     if (action.type === 'send_whatsapp') return (
       <div className="mt-2">
-        <Textarea placeholder={t.crm.messagePlaceholder} value={action.config.message || ''} onChange={e => updateAction(index, 'message', e.target.value)} rows={2} />
+        <Textarea placeholder={t.crm.messagePlaceholder} value={action.config.message || ''} onChange={e => updateAction(index, 'message', e.target.value)} rows={2} maxLength={4000} />
       </div>
     );
     if (action.type === 'create_followup') return (

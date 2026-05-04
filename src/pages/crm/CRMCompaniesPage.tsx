@@ -19,6 +19,7 @@ import { Building2, Plus, Search, X, Download, FileSpreadsheet, SlidersHorizonta
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { exportToCSV } from '@/lib/export-utils';
 import { computeTemperature, CadenceSettings, DEFAULT_CADENCE } from '@/components/crm/crm-temperature';
+import { isValidUrl, normalizeUrl } from '@/lib/validation';
 import { cn } from '@/lib/utils';
 import { KPICard } from '@/components/shared/KPICard';
 import { ContactCard } from '@/components/crm/CRMCardGrid';
@@ -200,6 +201,11 @@ export default function CRMCompaniesPage() {
 
   const handleCreate = async () => {
     if (!formRazao.trim() || !currentCompany) return;
+    const normalizedWebsite = formWebsite ? normalizeUrl(formWebsite) : '';
+    if (normalizedWebsite && !isValidUrl(normalizedWebsite)) {
+      toast({ title: 'URL inválida', description: 'Use um endereço http:// ou https:// válido.', variant: 'destructive' });
+      return;
+    }
     if (formCnpj) {
       const { data: dupes } = await supabase.from('crm_companies').select('id, razao_social')
         .eq('company_id', currentCompany.id).eq('cnpj', formCnpj);
@@ -212,7 +218,7 @@ export default function CRMCompaniesPage() {
       company_id: currentCompany.id, razao_social: formRazao.trim(),
       nome_fantasia: formFantasia || null, cnpj: formCnpj || null,
       segment: formSegment || null, size: formSize ? formSize as any : null,
-      email: formEmail || null, phone: formPhone || null, website: formWebsite || null,
+      email: formEmail || null, phone: formPhone || null, website: normalizedWebsite || null,
       created_by: supabaseUser?.id, responsible_id: supabaseUser?.id,
     });
     if (error) toast({ title: t.crm.errorCreatingCompany, variant: 'destructive' });
@@ -638,7 +644,16 @@ export default function CRMCompaniesPage() {
             </div>
             <div className="space-y-1.5 col-span-2">
               <Label>{t.crm.website}</Label>
-              <Input value={formWebsite} onChange={e => setFormWebsite(e.target.value)} placeholder="https://" />
+              <Input
+                value={formWebsite}
+                onChange={e => setFormWebsite(e.target.value)}
+                onBlur={() => { if (formWebsite) setFormWebsite(normalizeUrl(formWebsite)); }}
+                placeholder="https://"
+                className={formWebsite && !isValidUrl(normalizeUrl(formWebsite)) ? 'border-destructive' : ''}
+              />
+              {formWebsite && !isValidUrl(normalizeUrl(formWebsite)) && (
+                <p className="text-xs text-destructive">URL inválida — use http:// ou https://</p>
+              )}
             </div>
           </div>
           <DialogFooter>

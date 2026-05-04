@@ -19,6 +19,7 @@ import { LinkDealDialog } from '@/components/crm/LinkDealDialog';
 import { CRMTimeline } from '@/components/crm/CRMTimeline';
 import { computeTemperature, CadenceSettings, DEFAULT_CADENCE } from '@/components/crm/crm-temperature';
 import { formatCurrency } from '@/lib/format-utils';
+import { isValidUrl, normalizeUrl } from '@/lib/validation';
 
 interface CompanyCustomFields {
   secondary_email?: string;
@@ -154,15 +155,35 @@ export default function CRMCompanyDetailPage() {
 
   const handleSave = async () => {
     if (!id) return;
+    // Normalize and validate website
+    const normalizedWebsite = website ? normalizeUrl(website) : '';
+    if (normalizedWebsite && !isValidUrl(normalizedWebsite)) {
+      toast({ title: 'URL inválida', description: 'O website deve ser http:// ou https://.', variant: 'destructive' });
+      return;
+    }
+    // Normalize and validate social URLs
+    const socialUrlFields = ['instagram', 'facebook', 'linkedin', 'twitter', 'youtube'] as const;
+    const normalizedSocial = { ...cf.social };
+    for (const field of socialUrlFields) {
+      const val = normalizedSocial[field];
+      if (val) {
+        const norm = normalizeUrl(val);
+        if (!isValidUrl(norm)) {
+          toast({ title: 'URL de rede social inválida', description: `${field}: use http:// ou https://`, variant: 'destructive' });
+          return;
+        }
+        (normalizedSocial as any)[field] = norm;
+      }
+    }
     setSaving(true);
     const { error } = await supabase.from('crm_companies').update({
       razao_social: razaoSocial, nome_fantasia: nomeFantasia || null,
       cnpj: cnpj || null, segment: segment || null,
       size: size ? size as any : null, email: email || null,
-      phone: phone || null, website: website || null,
+      phone: phone || null, website: normalizedWebsite || null,
       temperature: temperature as any, status: status as any,
       tags: tags ? tags.split(',').map(tg => tg.trim()).filter(Boolean) : [],
-      custom_fields: cf as any,
+      custom_fields: { ...cf, social: normalizedSocial } as any,
     }).eq('id', id);
     setSaving(false);
     if (error) toast({ title: t.crmDetail.errorSaving, variant: 'destructive' });
@@ -474,7 +495,16 @@ export default function CRMCompanyDetailPage() {
                 </div>
                 <div className="space-y-1.5 col-span-2">
                   <Label>{t.crmDetail.website}</Label>
-                  <Input value={website} onChange={e => setWebsite(e.target.value)} />
+                  <Input
+                    value={website}
+                    onChange={e => setWebsite(e.target.value)}
+                    onBlur={() => { if (website) setWebsite(normalizeUrl(website)); }}
+                    placeholder="https://"
+                    className={website && !isValidUrl(normalizeUrl(website)) ? 'border-destructive' : ''}
+                  />
+                  {website && !isValidUrl(normalizeUrl(website)) && (
+                    <p className="text-xs text-destructive">URL inválida — use http:// ou https://</p>
+                  )}
                 </div>
                 <div className="space-y-1.5">
                   <Label>{t.crmDetail.origin}</Label>
@@ -574,7 +604,16 @@ export default function CRMCompanyDetailPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5 col-span-2">
                   <Label>Instagram</Label>
-                  <Input value={cf.social?.instagram || ''} onChange={e => updateCf('social.instagram', e.target.value)} />
+                  <Input
+                    value={cf.social?.instagram || ''}
+                    onChange={e => updateCf('social.instagram', e.target.value)}
+                    onBlur={() => { const v = cf.social?.instagram; if (v) updateCf('social.instagram', normalizeUrl(v)); }}
+                    placeholder="https://instagram.com/..."
+                    className={cf.social?.instagram && !isValidUrl(normalizeUrl(cf.social.instagram)) ? 'border-destructive' : ''}
+                  />
+                  {cf.social?.instagram && !isValidUrl(normalizeUrl(cf.social.instagram)) && (
+                    <p className="text-xs text-destructive">URL inválida — use http:// ou https://</p>
+                  )}
                 </div>
                 <div className="space-y-1.5">
                   <Label>Instagram Handle</Label>
@@ -602,19 +641,55 @@ export default function CRMCompanyDetailPage() {
                 </div>
                 <div className="space-y-1.5 col-span-2">
                   <Label>Facebook</Label>
-                  <Input value={cf.social?.facebook || ''} onChange={e => updateCf('social.facebook', e.target.value)} />
+                  <Input
+                    value={cf.social?.facebook || ''}
+                    onChange={e => updateCf('social.facebook', e.target.value)}
+                    onBlur={() => { const v = cf.social?.facebook; if (v) updateCf('social.facebook', normalizeUrl(v)); }}
+                    placeholder="https://facebook.com/..."
+                    className={cf.social?.facebook && !isValidUrl(normalizeUrl(cf.social.facebook)) ? 'border-destructive' : ''}
+                  />
+                  {cf.social?.facebook && !isValidUrl(normalizeUrl(cf.social.facebook)) && (
+                    <p className="text-xs text-destructive">URL inválida — use http:// ou https://</p>
+                  )}
                 </div>
                 <div className="space-y-1.5 col-span-2">
                   <Label>LinkedIn</Label>
-                  <Input value={cf.social?.linkedin || ''} onChange={e => updateCf('social.linkedin', e.target.value)} />
+                  <Input
+                    value={cf.social?.linkedin || ''}
+                    onChange={e => updateCf('social.linkedin', e.target.value)}
+                    onBlur={() => { const v = cf.social?.linkedin; if (v) updateCf('social.linkedin', normalizeUrl(v)); }}
+                    placeholder="https://linkedin.com/..."
+                    className={cf.social?.linkedin && !isValidUrl(normalizeUrl(cf.social.linkedin)) ? 'border-destructive' : ''}
+                  />
+                  {cf.social?.linkedin && !isValidUrl(normalizeUrl(cf.social.linkedin)) && (
+                    <p className="text-xs text-destructive">URL inválida — use http:// ou https://</p>
+                  )}
                 </div>
                 <div className="space-y-1.5 col-span-2">
                   <Label>Twitter/X</Label>
-                  <Input value={cf.social?.twitter || ''} onChange={e => updateCf('social.twitter', e.target.value)} />
+                  <Input
+                    value={cf.social?.twitter || ''}
+                    onChange={e => updateCf('social.twitter', e.target.value)}
+                    onBlur={() => { const v = cf.social?.twitter; if (v) updateCf('social.twitter', normalizeUrl(v)); }}
+                    placeholder="https://twitter.com/..."
+                    className={cf.social?.twitter && !isValidUrl(normalizeUrl(cf.social.twitter)) ? 'border-destructive' : ''}
+                  />
+                  {cf.social?.twitter && !isValidUrl(normalizeUrl(cf.social.twitter)) && (
+                    <p className="text-xs text-destructive">URL inválida — use http:// ou https://</p>
+                  )}
                 </div>
                 <div className="space-y-1.5 col-span-2">
                   <Label>YouTube</Label>
-                  <Input value={cf.social?.youtube || ''} onChange={e => updateCf('social.youtube', e.target.value)} />
+                  <Input
+                    value={cf.social?.youtube || ''}
+                    onChange={e => updateCf('social.youtube', e.target.value)}
+                    onBlur={() => { const v = cf.social?.youtube; if (v) updateCf('social.youtube', normalizeUrl(v)); }}
+                    placeholder="https://youtube.com/..."
+                    className={cf.social?.youtube && !isValidUrl(normalizeUrl(cf.social.youtube)) ? 'border-destructive' : ''}
+                  />
+                  {cf.social?.youtube && !isValidUrl(normalizeUrl(cf.social.youtube)) && (
+                    <p className="text-xs text-destructive">URL inválida — use http:// ou https://</p>
+                  )}
                 </div>
                 <div className="space-y-1.5">
                   <Label>{t.crmDetail.preferredContact}</Label>

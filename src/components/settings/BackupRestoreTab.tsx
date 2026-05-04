@@ -74,6 +74,12 @@ export default function BackupRestoreTab() {
         toast({ title: t.settingsBackup.invalidFormat, description: t.settingsBackup.selectJson, variant: 'destructive' });
         return;
       }
+      const MAX_SIZE = 5 * 1024 * 1024; // 5 MB
+      if (file.size > MAX_SIZE) {
+        toast({ title: 'Arquivo muito grande', description: 'O tamanho máximo para restauração é 5 MB.', variant: 'destructive' });
+        e.target.value = '';
+        return;
+      }
       setSelectedFile(file);
       setImportResult(null);
     }

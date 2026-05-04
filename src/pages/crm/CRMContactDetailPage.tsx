@@ -19,6 +19,7 @@ import { LinkDealDialog } from '@/components/crm/LinkDealDialog';
 import { CRMTimeline } from '@/components/crm/CRMTimeline';
 import { computeTemperature, CadenceSettings, DEFAULT_CADENCE } from '@/components/crm/crm-temperature';
 import { formatCurrency } from '@/lib/format-utils';
+import { isValidUrl, normalizeUrl } from '@/lib/validation';
 
 interface CustomFields {
   secondary_email?: string;
@@ -160,13 +161,27 @@ export default function CRMContactDetailPage() {
 
   const handleSave = async () => {
     if (!id) return;
+    // Normalize and validate social URLs
+    const socialUrlFields = ['instagram_url', 'facebook', 'linkedin', 'twitter'] as const;
+    const normalizedSocial = { ...cf.social };
+    for (const field of socialUrlFields) {
+      const val = (normalizedSocial as any)[field];
+      if (val) {
+        const norm = normalizeUrl(val);
+        if (!isValidUrl(norm)) {
+          toast({ title: 'URL de rede social inválida', description: `${field}: use http:// ou https://`, variant: 'destructive' });
+          return;
+        }
+        (normalizedSocial as any)[field] = norm;
+      }
+    }
     setSaving(true);
     const { error } = await supabase.from('crm_contacts').update({
       name, email: email || null, phone: phone || null, cpf: cpf || null,
       position: position || null, temperature: temperature as any,
       status: status as any, origin: origin as any,
       tags: tags ? tags.split(',').map(tg => tg.trim()).filter(Boolean) : [],
-      custom_fields: cf as any,
+      custom_fields: { ...cf, social: normalizedSocial } as any,
     }).eq('id', id);
     setSaving(false);
     if (error) toast({ title: t.crmDetail.errorSaving, variant: 'destructive' });
@@ -658,7 +673,16 @@ export default function CRMContactDetailPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5 col-span-2">
                   <Label>{t.crmDetail.instagramProfileUrl}</Label>
-                  <Input value={cf.social?.instagram_url || ''} onChange={e => updateCf('social.instagram_url', e.target.value)} />
+                  <Input
+                    value={cf.social?.instagram_url || ''}
+                    onChange={e => updateCf('social.instagram_url', e.target.value)}
+                    onBlur={() => { const v = cf.social?.instagram_url; if (v) updateCf('social.instagram_url', normalizeUrl(v)); }}
+                    placeholder="https://instagram.com/..."
+                    className={cf.social?.instagram_url && !isValidUrl(normalizeUrl(cf.social.instagram_url)) ? 'border-destructive' : ''}
+                  />
+                  {cf.social?.instagram_url && !isValidUrl(normalizeUrl(cf.social.instagram_url)) && (
+                    <p className="text-xs text-destructive">URL inválida — use http:// ou https://</p>
+                  )}
                 </div>
                 <div className="space-y-1.5">
                   <Label>Instagram Handle</Label>
@@ -678,15 +702,42 @@ export default function CRMContactDetailPage() {
                 </div>
                 <div className="space-y-1.5">
                   <Label>Facebook</Label>
-                  <Input value={cf.social?.facebook || ''} onChange={e => updateCf('social.facebook', e.target.value)} />
+                  <Input
+                    value={cf.social?.facebook || ''}
+                    onChange={e => updateCf('social.facebook', e.target.value)}
+                    onBlur={() => { const v = cf.social?.facebook; if (v) updateCf('social.facebook', normalizeUrl(v)); }}
+                    placeholder="https://facebook.com/..."
+                    className={cf.social?.facebook && !isValidUrl(normalizeUrl(cf.social.facebook)) ? 'border-destructive' : ''}
+                  />
+                  {cf.social?.facebook && !isValidUrl(normalizeUrl(cf.social.facebook)) && (
+                    <p className="text-xs text-destructive">URL inválida — use http:// ou https://</p>
+                  )}
                 </div>
                 <div className="space-y-1.5">
                   <Label>LinkedIn</Label>
-                  <Input value={cf.social?.linkedin || ''} onChange={e => updateCf('social.linkedin', e.target.value)} />
+                  <Input
+                    value={cf.social?.linkedin || ''}
+                    onChange={e => updateCf('social.linkedin', e.target.value)}
+                    onBlur={() => { const v = cf.social?.linkedin; if (v) updateCf('social.linkedin', normalizeUrl(v)); }}
+                    placeholder="https://linkedin.com/..."
+                    className={cf.social?.linkedin && !isValidUrl(normalizeUrl(cf.social.linkedin)) ? 'border-destructive' : ''}
+                  />
+                  {cf.social?.linkedin && !isValidUrl(normalizeUrl(cf.social.linkedin)) && (
+                    <p className="text-xs text-destructive">URL inválida — use http:// ou https://</p>
+                  )}
                 </div>
                 <div className="space-y-1.5">
                   <Label>Twitter / X</Label>
-                  <Input value={cf.social?.twitter || ''} onChange={e => updateCf('social.twitter', e.target.value)} />
+                  <Input
+                    value={cf.social?.twitter || ''}
+                    onChange={e => updateCf('social.twitter', e.target.value)}
+                    onBlur={() => { const v = cf.social?.twitter; if (v) updateCf('social.twitter', normalizeUrl(v)); }}
+                    placeholder="https://twitter.com/..."
+                    className={cf.social?.twitter && !isValidUrl(normalizeUrl(cf.social.twitter)) ? 'border-destructive' : ''}
+                  />
+                  {cf.social?.twitter && !isValidUrl(normalizeUrl(cf.social.twitter)) && (
+                    <p className="text-xs text-destructive">URL inválida — use http:// ou https://</p>
+                  )}
                 </div>
                 <div className="space-y-1.5">
                   <Label>{t.crmDetail.preferredContact}</Label>
