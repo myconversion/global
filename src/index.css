@@ -158,6 +158,13 @@
     background: hsl(var(--sidebar-muted));
   }
 
+  html,
+  body,
+  #root {
+    height: 100%;
+    overflow: hidden;
+  }
+
   body {
     @apply bg-background text-foreground font-sans antialiased;
     font-family: 'Poppins', system-ui, sans-serif;
