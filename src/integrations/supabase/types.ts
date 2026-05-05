@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.4"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -985,6 +985,150 @@ export type Database = {
             columns: ["deal_id"]
             isOneToOne: false
             referencedRelation: "crm_pipeline_deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_form_submissions: {
+        Row: {
+          company_id: string
+          contact_id: string | null
+          crm_company_id: string | null
+          data: Json
+          deal_id: string | null
+          form_id: string
+          id: string
+          ip_address: string | null
+          submitted_at: string
+          user_agent: string | null
+        }
+        Insert: {
+          company_id: string
+          contact_id?: string | null
+          crm_company_id?: string | null
+          data?: Json
+          deal_id?: string | null
+          form_id: string
+          id?: string
+          ip_address?: string | null
+          submitted_at?: string
+          user_agent?: string | null
+        }
+        Update: {
+          company_id?: string
+          contact_id?: string | null
+          crm_company_id?: string | null
+          data?: Json
+          deal_id?: string | null
+          form_id?: string
+          id?: string
+          ip_address?: string | null
+          submitted_at?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_form_submissions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_form_submissions_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_form_submissions_crm_company_id_fkey"
+            columns: ["crm_company_id"]
+            isOneToOne: false
+            referencedRelation: "crm_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_form_submissions_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "crm_pipeline_deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_form_submissions_form_id_fkey"
+            columns: ["form_id"]
+            isOneToOne: false
+            referencedRelation: "crm_forms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_forms: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          fields: Json
+          id: string
+          is_active: boolean
+          name: string
+          owner_id: string | null
+          pipeline_id: string | null
+          primary_entity: string
+          public_token: string
+          redirect_url: string | null
+          success_message: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          fields?: Json
+          id?: string
+          is_active?: boolean
+          name: string
+          owner_id?: string | null
+          pipeline_id?: string | null
+          primary_entity?: string
+          public_token?: string
+          redirect_url?: string | null
+          success_message?: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          fields?: Json
+          id?: string
+          is_active?: boolean
+          name?: string
+          owner_id?: string | null
+          pipeline_id?: string | null
+          primary_entity?: string
+          public_token?: string
+          redirect_url?: string | null
+          success_message?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_forms_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_forms_pipeline_id_fkey"
+            columns: ["pipeline_id"]
+            isOneToOne: false
+            referencedRelation: "crm_pipelines"
             referencedColumns: ["id"]
           },
         ]
@@ -2659,3 +2803,5 @@ export const Constants = {
     },
   },
 } as const
+A new version of Supabase CLI is available: v2.98.1 (currently installed v2.75.0)
+We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli
