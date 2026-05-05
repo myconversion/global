@@ -117,7 +117,7 @@ Deno.serve(async (req: Request) => {
     }
   }
 
-  // 4. Build mapped payloads
+  // 4. Build mapped payloads — only populate payloads relevant to primary_entity
   const contactPayload: Record<string, unknown> = {
     company_id: form.company_id,
     responsible_id: form.owner_id ?? null,
@@ -128,6 +128,7 @@ Deno.serve(async (req: Request) => {
     responsible_id: form.owner_id ?? null,
   };
   const dealExtra: { title?: string; value?: number } = {};
+  // custom_fields are collected separately and applied only to the primary entity
   const customFields: Record<string, unknown> = {};
 
   for (const field of fields) {
@@ -153,9 +154,13 @@ Deno.serve(async (req: Request) => {
     }
   }
 
+  // Assign custom_fields only to the primary entity — don't assign to unused payload
   if (Object.keys(customFields).length > 0) {
-    contactPayload.custom_fields = customFields;
-    companyPayload.custom_fields = customFields;
+    if (form.primary_entity === "contact") {
+      contactPayload.custom_fields = customFields;
+    } else {
+      companyPayload.custom_fields = customFields;
+    }
   }
 
   let contactId: string | null = null;
@@ -163,7 +168,9 @@ Deno.serve(async (req: Request) => {
   let dealId: string | null = null;
 
   // 5. Create contact or company (primary entity)
+  // On failure: return 500 immediately — do NOT save a submission with null entity IDs
   if (form.primary_entity === "contact") {
+    // Fallback: use email as name, then generic label
     if (!contactPayload.name) {
       contactPayload.name = (contactPayload.email as string) ?? "Lead sem nome";
     }
@@ -172,23 +179,31 @@ Deno.serve(async (req: Request) => {
       .insert(contactPayload)
       .select("id")
       .single();
-    if (cErr) console.error("Contact insert error:", JSON.stringify(cErr));
-    else contactId = contact?.id ?? null;
+    if (cErr) {
+      console.error("Contact insert error:", JSON.stringify(cErr));
+      return jsonError("Error creating contact record", 500);
+    }
+    contactId = contact?.id ?? null;
   } else {
-    if (!companyPayload.razao_social && !companyPayload.nome_fantasia) {
-      companyPayload.razao_social = "Empresa sem nome";
+    // Only require razao_social (the actual NOT NULL column); nome_fantasia is optional
+    if (!companyPayload.razao_social) {
+      companyPayload.razao_social = (companyPayload.nome_fantasia as string) ?? "Empresa sem nome";
     }
     const { data: company, error: coErr } = await supabase
       .from("crm_companies")
       .insert(companyPayload)
       .select("id")
       .single();
-    if (coErr) console.error("Company insert error:", JSON.stringify(coErr));
-    else crmCompanyId = company?.id ?? null;
+    if (coErr) {
+      console.error("Company insert error:", JSON.stringify(coErr));
+      return jsonError("Error creating company record", 500);
+    }
+    crmCompanyId = company?.id ?? null;
   }
 
-  // 6. Create deal in first active pipeline stage (if pipeline configured)
-  // NOTE: stages are stored as JSONB inside crm_pipelines.stages — there is no separate stages table.
+  // 6. Create deal in first pipeline stage (if pipeline configured)
+  // Stages are stored as JSONB in crm_pipelines.stages — no separate stages table.
+  // Use the first stage by order (probability < 100 to skip Won stage).
   if (form.pipeline_id) {
     const { data: pipeline } = await supabase
       .from("crm_pipelines")
@@ -199,8 +214,9 @@ Deno.serve(async (req: Request) => {
     const stages: PipelineStage[] = Array.isArray(pipeline?.stages) ? pipeline.stages : [];
     const sortedStages = [...stages].sort((a, b) => a.order - b.order);
 
-    // First stage with probability > 0 and < 100 (skip Won/Lost)
-    const firstStage = sortedStages.find(s => s.probability > 0 && s.probability < 100);
+    // First stage by order that isn't Won (probability < 100).
+    // Includes probability=0 stages (e.g. "Prospecção") which the previous filter wrongly skipped.
+    const firstStage = sortedStages.find(s => s.probability < 100);
 
     if (firstStage) {
       const leadName = String(
@@ -211,21 +227,25 @@ Deno.serve(async (req: Request) => {
         company_id:    form.company_id,
         responsible_id: form.owner_id ?? null,
         pipeline_id:   form.pipeline_id,
-        stage_name:    firstStage.name,   // ← stage_name (text), NOT stage_id
+        stage_name:    firstStage.name,   // stage_name (text field), not stage_id
         title:         dealExtra.title ?? leadName,
         value:         dealExtra.value ?? 0,
       };
 
       if (contactId)    dPayload.contact_id    = contactId;
-      if (crmCompanyId) dPayload.crm_company_id = crmCompanyId;  // ← crm_company_id, NOT company_id_crm
+      if (crmCompanyId) dPayload.crm_company_id = crmCompanyId;
 
       const { data: deal, error: dErr } = await supabase
         .from("crm_pipeline_deals")
         .insert(dPayload)
         .select("id")
         .single();
-      if (dErr) console.error("Deal insert error:", JSON.stringify(dErr));
-      else dealId = deal?.id ?? null;
+      if (dErr) {
+        console.error("Deal insert error:", JSON.stringify(dErr));
+        // Non-fatal: contact/company already created — still record the submission
+      } else {
+        dealId = deal?.id ?? null;
+      }
     }
   }
 

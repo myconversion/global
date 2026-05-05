@@ -263,7 +263,7 @@ function SubmissionsTab({ formId }: { formId: string }) {
           <tr className="border-b border-border bg-muted/50">
             <th className="text-left py-2 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t.crmForms.submittedAt}</th>
             <th className="text-left py-2 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t.crmForms.linkedContact}</th>
-            <th className="text-left py-2 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Data</th>
+            <th className="text-left py-2 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t.crmForms.submissionData}</th>
           </tr>
         </thead>
         <tbody>
@@ -395,15 +395,15 @@ export default function CRMFormBuilderPage() {
     setConfigField(updated);
   }, []);
 
-  // Remove field
+  // Remove field — use functional setConfigField to avoid stale closure on configField
   const removeField = useCallback((id: string) => {
     setFields(prev => prev.filter(f => f.id !== id));
-    if (configField?.id === id) setConfigField(null);
-  }, [configField]);
+    setConfigField(prev => (prev?.id === id ? null : prev));
+  }, []);
 
   // Save
   const handleSave = async () => {
-    if (!name.trim()) { toast.error(t.crmForms.formName + ' é obrigatório'); return; }
+    if (!name.trim()) { toast.error(t.crmForms.noFormName); return; }
     if (fields.length === 0) { toast.error(t.crmForms.noFieldsWarning); return; }
     if (!currentCompany || !supabaseUser) return;
 
@@ -510,7 +510,7 @@ export default function CRMFormBuilderPage() {
               {/* Form settings */}
               <div className="bg-card border border-border rounded-xl p-3 space-y-3">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                  Configurações
+                  {t.crmForms.formSettings}
                 </p>
 
                 <div className="space-y-1.5">

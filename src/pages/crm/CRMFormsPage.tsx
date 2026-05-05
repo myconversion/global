@@ -260,7 +260,7 @@ export default function CRMFormsPage() {
             <AlertDialogDescription>{t.crmForms.deleteFormDesc}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>{t.common?.cancel ?? 'Cancelar'}</AlertDialogCancel>
+            <AlertDialogCancel>{t.common.cancel}</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={() => deleteForm && deleteMutation.mutate(deleteForm.id)}
