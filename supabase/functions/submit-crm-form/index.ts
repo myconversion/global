@@ -36,7 +36,7 @@ function getServiceClient() {
 }
 
 // ---------------------------------------------------------------------------
-// Field mapping helpers
+// Types
 // ---------------------------------------------------------------------------
 type FieldMapping =
   | "contact.name" | "contact.email" | "contact.phone"
@@ -53,6 +53,12 @@ interface FormField {
   required: boolean;
   mapping: FieldMapping;
   customFieldKey?: string;
+}
+
+interface PipelineStage {
+  name: string;
+  probability: number;
+  order: number;
 }
 
 interface CRMForm {
@@ -114,16 +120,14 @@ Deno.serve(async (req: Request) => {
   // 4. Build mapped payloads
   const contactPayload: Record<string, unknown> = {
     company_id: form.company_id,
-    responsible_id: form.owner_id,
+    responsible_id: form.owner_id ?? null,
+    status: "lead",
   };
   const companyPayload: Record<string, unknown> = {
     company_id: form.company_id,
-    responsible_id: form.owner_id,
+    responsible_id: form.owner_id ?? null,
   };
-  const dealPayload: Record<string, unknown> = {
-    company_id: form.company_id,
-    responsible_id: form.owner_id,
-  };
+  const dealExtra: { title?: string; value?: number } = {};
   const customFields: Record<string, unknown> = {};
 
   for (const field of fields) {
@@ -141,8 +145,8 @@ Deno.serve(async (req: Request) => {
       case "company.cnpj":         companyPayload.cnpj          = val; break;
       case "company.email":        companyPayload.email          = val; break;
       case "company.phone":        companyPayload.phone          = val; break;
-      case "deal.title": dealPayload.title = val; break;
-      case "deal.value": dealPayload.value = Number(val) || 0; break;
+      case "deal.title": dealExtra.title = String(val); break;
+      case "deal.value": dealExtra.value = Number(val) || 0; break;
       case "custom_field":
         if (field.customFieldKey) customFields[field.customFieldKey] = val;
         break;
@@ -160,15 +164,15 @@ Deno.serve(async (req: Request) => {
 
   // 5. Create contact or company (primary entity)
   if (form.primary_entity === "contact") {
-    if (!contactPayload.name && !contactPayload.email) {
-      contactPayload.name = "Lead sem nome";
+    if (!contactPayload.name) {
+      contactPayload.name = (contactPayload.email as string) ?? "Lead sem nome";
     }
     const { data: contact, error: cErr } = await supabase
       .from("crm_contacts")
       .insert(contactPayload)
       .select("id")
       .single();
-    if (cErr) console.error("Contact insert error:", cErr);
+    if (cErr) console.error("Contact insert error:", JSON.stringify(cErr));
     else contactId = contact?.id ?? null;
   } else {
     if (!companyPayload.razao_social && !companyPayload.nome_fantasia) {
@@ -179,38 +183,48 @@ Deno.serve(async (req: Request) => {
       .insert(companyPayload)
       .select("id")
       .single();
-    if (coErr) console.error("Company insert error:", coErr);
+    if (coErr) console.error("Company insert error:", JSON.stringify(coErr));
     else crmCompanyId = company?.id ?? null;
   }
 
   // 6. Create deal in first active pipeline stage (if pipeline configured)
+  // NOTE: stages are stored as JSONB inside crm_pipelines.stages — there is no separate stages table.
   if (form.pipeline_id) {
-    const { data: stages } = await supabase
-      .from("crm_pipeline_stages")
-      .select("id, order, probability")
-      .eq("pipeline_id", form.pipeline_id)
-      .order("order", { ascending: true });
+    const { data: pipeline } = await supabase
+      .from("crm_pipelines")
+      .select("stages")
+      .eq("id", form.pipeline_id)
+      .single<{ stages: PipelineStage[] }>();
 
-    const firstStage = (stages ?? []).find(
-      (s: { probability: number }) => s.probability > 0 && s.probability < 100
-    );
+    const stages: PipelineStage[] = Array.isArray(pipeline?.stages) ? pipeline.stages : [];
+    const sortedStages = [...stages].sort((a, b) => a.order - b.order);
+
+    // First stage with probability > 0 and < 100 (skip Won/Lost)
+    const firstStage = sortedStages.find(s => s.probability > 0 && s.probability < 100);
 
     if (firstStage) {
+      const leadName = String(
+        contactPayload.name ?? companyPayload.razao_social ?? companyPayload.nome_fantasia ?? "Novo Lead"
+      );
+
       const dPayload: Record<string, unknown> = {
-        ...dealPayload,
-        pipeline_id: form.pipeline_id,
-        stage_id: firstStage.id,
-        title: dealPayload.title ?? (contactPayload.name ?? companyPayload.razao_social ?? "Novo Lead"),
+        company_id:    form.company_id,
+        responsible_id: form.owner_id ?? null,
+        pipeline_id:   form.pipeline_id,
+        stage_name:    firstStage.name,   // ← stage_name (text), NOT stage_id
+        title:         dealExtra.title ?? leadName,
+        value:         dealExtra.value ?? 0,
       };
-      if (contactId)    dPayload.contact_id   = contactId;
-      if (crmCompanyId) dPayload.company_id_crm = crmCompanyId;
+
+      if (contactId)    dPayload.contact_id    = contactId;
+      if (crmCompanyId) dPayload.crm_company_id = crmCompanyId;  // ← crm_company_id, NOT company_id_crm
 
       const { data: deal, error: dErr } = await supabase
         .from("crm_pipeline_deals")
         .insert(dPayload)
         .select("id")
         .single();
-      if (dErr) console.error("Deal insert error:", dErr);
+      if (dErr) console.error("Deal insert error:", JSON.stringify(dErr));
       else dealId = deal?.id ?? null;
     }
   }
@@ -235,12 +249,12 @@ Deno.serve(async (req: Request) => {
     .single();
 
   if (subErr) {
-    console.error("Submission insert error:", subErr);
+    console.error("Submission insert error:", JSON.stringify(subErr));
     return jsonError("Error saving submission", 500);
   }
 
   return jsonOk({
-    success: true,
+    success:         true,
     submission_id:   submission.id,
     success_message: form.success_message,
     redirect_url:    form.redirect_url,

@@ -33,7 +33,7 @@ const FIELD_ICONS: Record<FormFieldType, React.ElementType> = {
   textarea: AlignLeft, select: List, number: Hash, checkbox: SquareCheck,
 };
 
-const MAPPING_OPTIONS: { value: FieldMapping; labelKey: keyof ReturnType<typeof import('@/contexts/I18nContext')['useI18n']>['t']['crmForms'] }[] = [
+const MAPPING_OPTIONS: { value: FieldMapping; labelKey: string }[] = [
   { value: 'contact.name',          labelKey: 'mappingContactName' },
   { value: 'contact.email',         labelKey: 'mappingContactEmail' },
   { value: 'contact.phone',         labelKey: 'mappingContactPhone' },
@@ -123,7 +123,7 @@ function FieldConfigSheet({
               <SelectContent>
                 {MAPPING_OPTIONS.map(m => (
                   <SelectItem key={m.value} value={m.value}>
-                    {t.crmForms[m.labelKey] as string}
+                    {(t.crmForms as Record<string, string>)[m.labelKey] ?? m.labelKey}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -403,7 +403,7 @@ export default function CRMFormBuilderPage() {
 
   // Save
   const handleSave = async () => {
-    if (!name.trim()) { toast.error(t.crmForms.fieldLabel); return; }
+    if (!name.trim()) { toast.error(t.crmForms.formName + ' é obrigatório'); return; }
     if (fields.length === 0) { toast.error(t.crmForms.noFieldsWarning); return; }
     if (!currentCompany || !supabaseUser) return;
 
