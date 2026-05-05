@@ -3,7 +3,7 @@ import { Outlet, Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, Users, Building2, Kanban, Zap, CalendarCheck, CheckSquare,
-  Search, ChevronLeft, ChevronRight, X, RefreshCw
+  Search, ChevronLeft, ChevronRight, X, RefreshCw, ClipboardList
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -30,6 +30,7 @@ export function CRMLayout() {
     { label: t.crmLayoutNav.automations, icon: Zap, path: '/crm/automations', badgeKey: null },
     { label: t.crmLayoutNav.followups, icon: CalendarCheck, path: '/crm/followups', badgeKey: 'followups' as const },
     { label: t.crmLayoutNav.tasks, icon: CheckSquare, path: '/crm/tasks', badgeKey: null },
+    { label: t.crmLayoutNav.forms, icon: ClipboardList, path: '/crm/forms', badgeKey: null },
   ];
 
   const isActive = (path: string) => {

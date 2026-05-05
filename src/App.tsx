@@ -26,6 +26,9 @@ const CRMPipelinePage = lazy(() => import("./pages/crm/CRMPipelinePage"));
 const CRMAutomationsPage = lazy(() => import("./pages/crm/CRMAutomationsPage"));
 const CRMFollowupsPage = lazy(() => import("./pages/crm/CRMFollowupsPage"));
 const CRMTasksPage = lazy(() => import("./pages/crm/CRMTasksPage"));
+const CRMFormsPage = lazy(() => import("./pages/crm/CRMFormsPage"));
+const CRMFormBuilderPage = lazy(() => import("./pages/crm/CRMFormBuilderPage"));
+const PublicFormPage = lazy(() => import("./pages/PublicFormPage"));
 const ProjectsPage = lazy(() => import("./pages/ProjectsPage"));
 const ClientsPage = lazy(() => import("./pages/ClientsPage"));
 const ClientDetailPage = lazy(() => import("./pages/ClientDetailPage"));
@@ -93,6 +96,7 @@ function AppRoutes() {
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
       <Route path="/auth" element={<PublicRoute><AuthPage /></PublicRoute>} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
+      <Route path="/form/:token" element={<PublicFormPage />} />
       <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/my-tasks" element={<MyTasksPage />} />
@@ -106,6 +110,9 @@ function AppRoutes() {
           <Route path="automations" element={<CRMAutomationsPage />} />
           <Route path="followups" element={<CRMFollowupsPage />} />
           <Route path="tasks" element={<CRMTasksPage />} />
+          <Route path="forms" element={<CRMFormsPage />} />
+          <Route path="forms/new" element={<CRMFormBuilderPage />} />
+          <Route path="forms/:id" element={<CRMFormBuilderPage />} />
         </Route>
         <Route path="/projects" element={<ProjectsLayout />}>
           <Route index element={<ProjectsDashboardPage />} />
