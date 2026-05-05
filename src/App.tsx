@@ -144,26 +144,28 @@ function AppRoutes() {
   );
 }
 
+// BrowserRouter fica na camada mais externa para que qualquer Provider
+// possa usar useNavigate/useLocation no futuro sem crash.
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <AuthProvider>
-        <I18nProvider>
-          <ProjectsProvider>
-            <ClientProvider>
-              <FinancialProvider>
-                <Toaster />
-                <Sonner />
-                <BrowserRouter>
+  <BrowserRouter>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <AuthProvider>
+          <I18nProvider>
+            <ProjectsProvider>
+              <ClientProvider>
+                <FinancialProvider>
+                  <Toaster />
+                  <Sonner />
                   <AppRoutes />
-                </BrowserRouter>
-              </FinancialProvider>
-            </ClientProvider>
-          </ProjectsProvider>
-        </I18nProvider>
-      </AuthProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
+                </FinancialProvider>
+              </ClientProvider>
+            </ProjectsProvider>
+          </I18nProvider>
+        </AuthProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </BrowserRouter>
 );
 
 export default App;

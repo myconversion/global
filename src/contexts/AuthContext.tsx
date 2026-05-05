@@ -151,15 +151,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
+    // Flag para garantir que apenas uma inicialização acontece
+    let initialized = false;
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, newSession) => {
+      // INITIAL_SESSION é disparado ao mesmo tempo que getSession() na carga inicial.
+      // Ignoramos aqui para evitar dupla chamada de loadUserData (race condition).
+      // O getSession() abaixo é a fonte de verdade para a sessão inicial.
+      if (event === 'INITIAL_SESSION') return;
+
       setSession(newSession);
       setSupabaseUser(newSession?.user ?? null);
 
       if (newSession?.user) {
+        // Usar setTimeout(0) para sair do callback do Supabase antes de fazer
+        // novas chamadas ao Supabase (evita deadlock interno do cliente).
         setTimeout(() => {
           loadUserData(newSession.user.id).finally(() => setLoading(false));
         }, 0);
       } else {
+        // Logout: limpar tudo imediatamente
         setProfile(null);
         setMemberships([]);
         setCurrentCompanyState(null);
@@ -172,9 +183,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
 
+    // Única fonte de verdade para a sessão inicial.
+    // Só executa uma vez graças à flag `initialized`.
     supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+      if (initialized) return;
+      initialized = true;
+
       setSession(currentSession);
       setSupabaseUser(currentSession?.user ?? null);
+
       if (currentSession?.user) {
         loadUserData(currentSession.user.id).finally(() => setLoading(false));
       } else {
