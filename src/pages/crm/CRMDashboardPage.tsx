@@ -64,7 +64,8 @@ const STATUS_COLORS = {
 };
 
 export default function CRMDashboardPage() {
-  const { currentCompany, currentBusinessUnit } = useAuth();
+  const { currentCompany, currentBusinessUnit, role, supabaseUser } = useAuth();
+  const isCollaborator = role === 'collaborator';
   const { t, language } = useI18n();
   const dateLocale = getDateLocale(language);
   const navigate = useNavigate();
@@ -122,7 +123,12 @@ export default function CRMDashboardPage() {
         contactsQuery = contactsQuery.lte('created_at', toDate);
       }
 
-      if (selectedUserId !== 'all') {
+      if (isCollaborator && supabaseUser) {
+        // Collaborators always see only their own data — ignore selectedUserId filter
+        dealsQuery = dealsQuery.or(`responsible_id.eq.${supabaseUser.id},created_by.eq.${supabaseUser.id}`);
+        followupsQuery = followupsQuery.eq('assigned_to', supabaseUser.id);
+        contactsQuery = contactsQuery.eq('responsible_id', supabaseUser.id);
+      } else if (selectedUserId !== 'all') {
         dealsQuery = dealsQuery.eq('responsible_id', selectedUserId);
         followupsQuery = followupsQuery.eq('assigned_to', selectedUserId);
         contactsQuery = contactsQuery.eq('responsible_id', selectedUserId);

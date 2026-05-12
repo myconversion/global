@@ -46,7 +46,8 @@ interface PipelineDeal {
 }
 
 export default function CRMPipelinePage() {
-  const { currentCompany, supabaseUser } = useAuth();
+  const { currentCompany, supabaseUser, role } = useAuth();
+  const isCollaborator = role === 'collaborator';
   const { toast } = useToast();
   const { t, language } = useI18n();
   const navigate = useNavigate();
@@ -187,21 +188,31 @@ export default function CRMPipelinePage() {
 
   const fetchDeals = async () => {
     if (!currentCompany || !selectedPipelineId) return;
-    const { data } = await supabase
+    let query = supabase
       .from('crm_pipeline_deals')
       .select('*')
       .eq('company_id', currentCompany.id)
       .eq('pipeline_id', selectedPipelineId)
       .order('created_at');
+    // Collaborators see only deals they are responsible for or created
+    if (isCollaborator && supabaseUser) {
+      query = query.or(`responsible_id.eq.${supabaseUser.id},created_by.eq.${supabaseUser.id}`);
+    }
+    const { data } = await query;
     if (data) setDeals(data as PipelineDeal[]);
   };
 
   const fetchOverviewDeals = async () => {
     if (!currentCompany) return;
-    const { data } = await supabase
+    let query = supabase
       .from('crm_pipeline_deals')
       .select('pipeline_id, value, stage_name')
       .eq('company_id', currentCompany.id);
+    // Collaborators see only their own deals in overview cards too
+    if (isCollaborator && supabaseUser) {
+      query = query.or(`responsible_id.eq.${supabaseUser.id},created_by.eq.${supabaseUser.id}`);
+    }
+    const { data } = await query;
     if (data) setOverviewDeals(data as { pipeline_id: string; value: number; stage_name: string }[]);
   };
 
