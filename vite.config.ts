@@ -17,7 +17,33 @@ export default defineConfig(({ mode }) => ({
       registerType: "autoUpdate",
       includeAssets: ["favicon.ico", "favicon-*.png", "apple-touch-icon-*.png"],
       workbox: {
-        navigateFallbackDenylist: [/^\/~oauth/],
+        // Ativa o novo SW imediatamente sem esperar abas fecharem.
+        // Combinado com o listener 'controllerchange' em main.tsx, isso
+        // garante que a página recarregue assim que um novo deploy chega.
+        skipWaiting: true,
+        clientsClaim: true,
+
+        // Remove caches antigos automaticamente ao ativar novo SW,
+        // evitando que chunks com hashes velhos fiquem servindo.
+        cleanupOutdatedCaches: true,
+
+        // Estratégia NetworkFirst para requests de navegação (HTML):
+        // sempre busca o index.html atualizado da rede primeiro.
+        // Só cai no cache se offline. Evita servir index.html antigo
+        // que referencia chunks inexistentes após um deploy.
+        navigationPreload: true,
+        runtimeCaching: [
+          {
+            urlPattern: ({ request }) => request.mode === 'navigate',
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'navigation-cache',
+              networkTimeoutSeconds: 5,
+            },
+          },
+        ],
+
+        navigateFallbackDenylist: [/^\/~oauth/, /^\/form\//],
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
       },
       manifest: {
