@@ -20,6 +20,7 @@ import { formatCurrency } from '@/lib/format-utils';
 import { CRMPipelineAnalysis } from '@/components/crm/CRMPipelineAnalysis';
 import { ConvertDealToProjectDialog } from '@/components/crm/ConvertDealToProjectDialog';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
+import { useCompanyMembers } from '@/hooks/useCompanyMembers';
 
 interface Pipeline {
   id: string;
@@ -48,6 +49,7 @@ interface PipelineDeal {
 export default function CRMPipelinePage() {
   const { currentCompany, supabaseUser, role } = useAuth();
   const isCollaborator = role === 'collaborator';
+  const { data: members = [] } = useCompanyMembers();
   const { toast } = useToast();
   const { t, language } = useI18n();
   const navigate = useNavigate();
@@ -115,6 +117,8 @@ export default function CRMPipelinePage() {
   const [formCompanyId, setFormCompanyId] = useState('none');
   const [editContactId, setEditContactId] = useState('none');
   const [editCompanyId, setEditCompanyId] = useState('none');
+  const [formResponsibleId, setFormResponsibleId] = useState('');
+  const [editResponsibleId, setEditResponsibleId] = useState('');
 
   const selectedPipeline = pipelines.find(p => p.id === selectedPipelineId);
   const sortedStages = useMemo(() =>
@@ -349,7 +353,7 @@ export default function CRMPipelinePage() {
       title: formDealTitle.trim(),
       value: Number(formDealValue) || 0,
       expected_close_date: formDealExpectedClose || null,
-      responsible_id: supabaseUser?.id,
+      responsible_id: formResponsibleId || supabaseUser?.id,
       created_by: supabaseUser?.id,
       contact_id: (formContactId && formContactId !== 'none') ? formContactId : null,
       crm_company_id: (formCompanyId && formCompanyId !== 'none') ? formCompanyId : null,
@@ -365,6 +369,7 @@ export default function CRMPipelinePage() {
       setFormDealExpectedClose('');
       setFormContactId('none');
       setFormCompanyId('none');
+      setFormResponsibleId('');
       fetchDeals();
     }
   };
@@ -376,6 +381,7 @@ export default function CRMPipelinePage() {
     setEditExpectedClose(deal.expected_close_date || '');
     setEditContactId(deal.contact_id || 'none');
     setEditCompanyId(deal.crm_company_id || 'none');
+    setEditResponsibleId(deal.responsible_id || '');
   };
 
   const handleUpdateDeal = async () => {
@@ -386,6 +392,7 @@ export default function CRMPipelinePage() {
       expected_close_date: editExpectedClose || null,
       contact_id: (editContactId && editContactId !== 'none') ? editContactId : null,
       crm_company_id: (editCompanyId && editCompanyId !== 'none') ? editCompanyId : null,
+      ...((!isCollaborator) && { responsible_id: editResponsibleId || supabaseUser?.id }),
     }).eq('id', editDeal.id);
     if (error) {
       toast({ title: t.crmPipeline.errorUpdatingDeal, variant: 'destructive' });
@@ -1025,6 +1032,17 @@ export default function CRMPipelinePage() {
                 </SelectContent>
               </Select>
             </div>
+            {!isCollaborator && (
+              <div className="space-y-1.5">
+                <Label>{t.crm.owner}</Label>
+                <Select value={editResponsibleId || supabaseUser?.id || ''} onValueChange={setEditResponsibleId}>
+                  <SelectTrigger><SelectValue placeholder={t.crm.selectOwner} /></SelectTrigger>
+                  <SelectContent>
+                    {members.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             {editDeal?.loss_reason && (
               <div className="space-y-1.5">
                 <Label>{t.crmPipeline.lossReasonLabel}</Label>
@@ -1169,9 +1187,20 @@ export default function CRMPipelinePage() {
                 </Select>
               </div>
             </div>
+            {!isCollaborator && (
+              <div className="space-y-1.5">
+                <Label>{t.crm.owner}</Label>
+                <Select value={formResponsibleId || supabaseUser?.id || ''} onValueChange={setFormResponsibleId}>
+                  <SelectTrigger><SelectValue placeholder={t.crm.selectOwner} /></SelectTrigger>
+                  <SelectContent>
+                    {members.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setDealDialogOpen(false); setFormDealTitle(''); setFormDealValue(''); setFormDealStage(''); setFormDealExpectedClose(''); setFormContactId('none'); setFormCompanyId('none'); }}>{t.common.cancel}</Button>
+            <Button variant="outline" onClick={() => { setDealDialogOpen(false); setFormDealTitle(''); setFormDealValue(''); setFormDealStage(''); setFormDealExpectedClose(''); setFormContactId('none'); setFormCompanyId('none'); setFormResponsibleId(''); }}>{t.common.cancel}</Button>
             <Button onClick={handleCreateDeal} disabled={!formDealTitle.trim()}>{t.crmPipeline.newDeal}</Button>
           </DialogFooter>
         </DialogContent>

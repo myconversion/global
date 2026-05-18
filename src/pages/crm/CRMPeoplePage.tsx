@@ -31,6 +31,7 @@ import { ContactCard } from '@/components/crm/CRMCardGrid';
 import { BulkActionBar } from '@/components/crm/BulkActionBar';
 import { ImportContactsDialog } from '@/components/crm/ImportContactsDialog';
 import { formatCurrency } from '@/lib/format-utils';
+import { useCompanyMembers } from '@/hooks/useCompanyMembers';
 
 const PAGE_SIZE = 50;
 
@@ -79,6 +80,7 @@ export default function CRMPeoplePage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const isCollaborator = role === 'collaborator';
+  const { data: members = [] } = useCompanyMembers();
 
   const buId = currentBusinessUnit?.id;
 
@@ -110,6 +112,7 @@ export default function CRMPeoplePage() {
   const [formPosition, setFormPosition] = useState('');
   const [formOrigin, setFormOrigin]     = useState<string>('other');
   const [formTags, setFormTags]         = useState('');
+  const [formResponsibleId, setFormResponsibleId] = useState('');
 
   // ── Filters ───────────────────────────────────────────────────────────────
   const [search, setSearch]             = useState('');
@@ -344,6 +347,7 @@ export default function CRMPeoplePage() {
   const resetForm = () => {
     setFormName(''); setFormCpf(''); setFormEmail(''); setFormPhone('');
     setFormPosition(''); setFormOrigin('other'); setFormTags('');
+    setFormResponsibleId('');
   };
 
   const handleCreate = async () => {
@@ -367,7 +371,7 @@ export default function CRMPeoplePage() {
       cpf: formCpf || null, email: formEmail || null,
       phone: formPhone || null, position: formPosition || null,
       origin: formOrigin as any, tags,
-      created_by: supabaseUser?.id, responsible_id: supabaseUser?.id,
+      created_by: supabaseUser?.id, responsible_id: formResponsibleId || supabaseUser?.id,
     });
     if (error) {
       toast({ title: t.crm.errorCreatingContact, variant: 'destructive' });
@@ -857,6 +861,17 @@ export default function CRMPeoplePage() {
               <Label>{t.crm.tagsSeparatedByComma}</Label>
               <Input value={formTags} onChange={e => setFormTags(e.target.value)} placeholder={t.placeholders.crmTags} />
             </div>
+            {!isCollaborator && (
+              <div className="space-y-1.5 col-span-2">
+                <Label>{t.crm.owner}</Label>
+                <Select value={formResponsibleId || supabaseUser?.id || ''} onValueChange={setFormResponsibleId}>
+                  <SelectTrigger><SelectValue placeholder={t.crm.selectOwner} /></SelectTrigger>
+                  <SelectContent>
+                    {members.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => { resetForm(); setDialogOpen(false); }}>{t.common.cancel}</Button>

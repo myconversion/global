@@ -25,6 +25,7 @@ import { KPICard } from '@/components/shared/KPICard';
 import { ContactCard } from '@/components/crm/CRMCardGrid';
 import { BulkActionBar } from '@/components/crm/BulkActionBar';
 import { formatCurrency } from '@/lib/format-utils';
+import { useCompanyMembers } from '@/hooks/useCompanyMembers';
 
 const TEMP_COLORS: Record<string, string> = {
   cold: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300',
@@ -55,6 +56,7 @@ interface CRMCompany {
 export default function CRMCompaniesPage() {
   const { currentCompany, supabaseUser, currentBusinessUnit, role } = useAuth();
   const isCollaborator = role === 'collaborator';
+  const { data: members = [] } = useCompanyMembers();
   const { t, language } = useI18n();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -97,6 +99,7 @@ export default function CRMCompaniesPage() {
   const [formEmail, setFormEmail] = useState('');
   const [formPhone, setFormPhone] = useState('');
   const [formWebsite, setFormWebsite] = useState('');
+  const [formResponsibleId, setFormResponsibleId] = useState('');
 
   const buId = currentBusinessUnit?.id;
 
@@ -232,10 +235,10 @@ export default function CRMCompaniesPage() {
       nome_fantasia: formFantasia || null, cnpj: formCnpj || null,
       segment: formSegment || null, size: formSize ? formSize as any : null,
       email: formEmail || null, phone: formPhone || null, website: normalizedWebsite || null,
-      created_by: supabaseUser?.id, responsible_id: supabaseUser?.id,
+      created_by: supabaseUser?.id, responsible_id: formResponsibleId || supabaseUser?.id,
     });
     if (error) toast({ title: t.crm.errorCreatingCompany, variant: 'destructive' });
-    else { toast({ title: t.crm.companyCreated }); setDialogOpen(false); resetForm(); fetchCompanies(); }
+    else { toast({ title: t.crm.companyCreated }); setDialogOpen(false); setFormResponsibleId(''); resetForm(); fetchCompanies(); }
   };
 
   const columns = [
@@ -668,6 +671,17 @@ export default function CRMCompaniesPage() {
                 <p className="text-xs text-destructive">URL inválida — use http:// ou https://</p>
               )}
             </div>
+            {!isCollaborator && (
+              <div className="space-y-1.5 col-span-2">
+                <Label>{t.crm.owner}</Label>
+                <Select value={formResponsibleId || supabaseUser?.id || ''} onValueChange={setFormResponsibleId}>
+                  <SelectTrigger><SelectValue placeholder={t.crm.selectOwner} /></SelectTrigger>
+                  <SelectContent>
+                    {members.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => { resetForm(); setDialogOpen(false); }}>{t.common.cancel}</Button>
