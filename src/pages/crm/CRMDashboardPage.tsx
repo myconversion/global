@@ -123,15 +123,24 @@ export default function CRMDashboardPage() {
         contactsQuery = contactsQuery.lte('created_at', toDate);
       }
 
+      // Collaborator isolation — matches RLS policies exactly
+      let totalContactsQuery = supabase.from('crm_contacts').select('id', { count: 'exact', head: true }).eq('company_id', companyId);
+      let totalCompaniesQuery = supabase.from('crm_companies').select('id', { count: 'exact', head: true }).eq('company_id', companyId);
+
       if (isCollaborator && supabaseUser) {
         // Collaborators always see only their own data — ignore selectedUserId filter
-        dealsQuery = dealsQuery.or(`responsible_id.eq.${supabaseUser.id},created_by.eq.${supabaseUser.id}`);
-        followupsQuery = followupsQuery.eq('assigned_to', supabaseUser.id);
-        contactsQuery = contactsQuery.eq('responsible_id', supabaseUser.id);
+        dealsQuery     = dealsQuery.or(`responsible_id.eq.${supabaseUser.id},created_by.eq.${supabaseUser.id}`);
+        followupsQuery = followupsQuery.or(`assigned_to.eq.${supabaseUser.id},created_by.eq.${supabaseUser.id}`);
+        contactsQuery  = contactsQuery.or(`responsible_id.eq.${supabaseUser.id},created_by.eq.${supabaseUser.id}`);
+        // Totals also scoped to the collaborator
+        totalContactsQuery  = totalContactsQuery.or(`responsible_id.eq.${supabaseUser.id},created_by.eq.${supabaseUser.id}`);
+        totalCompaniesQuery = totalCompaniesQuery.or(`responsible_id.eq.${supabaseUser.id},created_by.eq.${supabaseUser.id}`);
       } else if (selectedUserId !== 'all') {
-        dealsQuery = dealsQuery.eq('responsible_id', selectedUserId);
+        dealsQuery     = dealsQuery.eq('responsible_id', selectedUserId);
         followupsQuery = followupsQuery.eq('assigned_to', selectedUserId);
-        contactsQuery = contactsQuery.eq('responsible_id', selectedUserId);
+        contactsQuery  = contactsQuery.eq('responsible_id', selectedUserId);
+        totalContactsQuery  = totalContactsQuery.eq('responsible_id', selectedUserId);
+        totalCompaniesQuery = totalCompaniesQuery.eq('responsible_id', selectedUserId);
       }
 
       const [
@@ -146,8 +155,8 @@ export default function CRMDashboardPage() {
         supabase.from('crm_pipelines').select('id, name, stages').eq('company_id', companyId),
         followupsQuery,
         contactsQuery.order('score', { ascending: false }).limit(5),
-        supabase.from('crm_contacts').select('id', { count: 'exact', head: true }).eq('company_id', companyId),
-        supabase.from('crm_companies').select('id', { count: 'exact', head: true }).eq('company_id', companyId),
+        totalContactsQuery,
+        totalCompaniesQuery,
       ]);
 
       const allDeals = pipelineDeals ?? [];
@@ -314,8 +323,17 @@ export default function CRMDashboardPage() {
             <ChevronRight className="w-3 h-3" />
             <span className="text-foreground font-medium">{t.crm.dashboardTitle}</span>
           </div>
-          <h1 className="text-2xl font-bold text-foreground tracking-tight">{t.crm.dashboardTitle}</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">{t.crm.dashboardDesc}</p>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold text-foreground tracking-tight">{t.crm.dashboardTitle}</h1>
+            {isCollaborator && (
+              <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                <UserCircle className="w-3 h-3" /> {t.crm.myData ?? 'Meus dados'}
+              </span>
+            )}
+          </div>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            {isCollaborator ? (t.crm.dashboardCollaboratorDesc ?? 'Visão dos seus negócios, contatos e atividades.') : t.crm.dashboardDesc}
+          </p>
         </div>
 
         {/* Global Filters Bar */}
@@ -386,18 +404,20 @@ export default function CRMDashboardPage() {
             </PopoverContent>
           </Popover>
 
-          <Select value={selectedUserId} onValueChange={setSelectedUserId}>
-            <SelectTrigger className="w-[180px] h-8 text-xs bg-background">
-              <UserCircle className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" />
-              <SelectValue placeholder={t.crm.allUsers} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{t.crm.allUsers}</SelectItem>
-              {teamMembers.map(m => (
-                <SelectItem key={m.user_id} value={m.user_id}>{m.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {!isCollaborator && (
+            <Select value={selectedUserId} onValueChange={setSelectedUserId}>
+              <SelectTrigger className="w-[180px] h-8 text-xs bg-background">
+                <UserCircle className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" />
+                <SelectValue placeholder={t.crm.allUsers} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t.crm.allUsers}</SelectItem>
+                {teamMembers.map(m => (
+                  <SelectItem key={m.user_id} value={m.user_id}>{m.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </div>
       </div>
 

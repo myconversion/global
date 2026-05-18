@@ -648,6 +648,8 @@ const es: TranslationKeys = {
   crm: {
     dashboardTitle: 'Dashboard',
     dashboardDesc: 'Visión general completa de sus métricas y actividades',
+    myData: 'Mis datos',
+    dashboardCollaboratorDesc: 'Vista de sus negocios, contactos y actividades.',
     filters: 'Filtros',
     allPipelines: 'Todos los embudos',
     selectPeriod: 'Seleccionar período',

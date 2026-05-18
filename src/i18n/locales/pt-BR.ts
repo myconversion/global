@@ -647,6 +647,8 @@ const ptBR = {
     // Dashboard
     dashboardTitle: 'Dashboard',
     dashboardDesc: 'Visão geral completa das suas métricas e atividades',
+    myData: 'Meus dados',
+    dashboardCollaboratorDesc: 'Visão dos seus negócios, contatos e atividades.',
     filters: 'Filtros',
     allPipelines: 'Todos os funis',
     selectPeriod: 'Selecionar período',
