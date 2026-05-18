@@ -41,7 +41,8 @@ const FOLLOWUP_TYPE_ICONS: Record<string, React.ElementType> = {
 
 export default function CRMTasksPage() {
   const navigate = useNavigate();
-  const { currentCompany } = useAuth();
+  const { currentCompany, supabaseUser, role } = useAuth();
+  const isCollaborator = role === 'collaborator';
   const { t, language } = useI18n();
   const dateLocale = getDateLocale(language);
 
@@ -69,7 +70,11 @@ export default function CRMTasksPage() {
     if (!currentCompany) return;
     const fetch = async () => {
       setLoading(true);
-      const { data } = await supabase.from('crm_followups').select('*').eq('company_id', currentCompany.id).order('scheduled_at', { ascending: true });
+      let followupsQuery = supabase.from('crm_followups').select('*').eq('company_id', currentCompany.id).order('scheduled_at', { ascending: true });
+      if (isCollaborator && supabaseUser) {
+        followupsQuery = followupsQuery.or(`assigned_to.eq.${supabaseUser.id},created_by.eq.${supabaseUser.id}`);
+      }
+      const { data } = await followupsQuery;
       if (data) {
         setFollowups(data);
         const contactIds = [...new Set(data.map(f => f.contact_id).filter(Boolean))] as string[];

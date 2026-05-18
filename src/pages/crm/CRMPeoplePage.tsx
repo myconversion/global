@@ -73,11 +73,12 @@ function useDebounced<T>(value: T, delay = 300): T {
 }
 
 export default function CRMPeoplePage() {
-  const { currentCompany, supabaseUser, currentBusinessUnit } = useAuth();
+  const { currentCompany, supabaseUser, currentBusinessUnit, role } = useAuth();
   const { toast } = useToast();
   const { t, language } = useI18n();
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const isCollaborator = role === 'collaborator';
 
   const buId = currentBusinessUnit?.id;
 
@@ -141,18 +142,22 @@ export default function CRMPeoplePage() {
 
   // ── Data fetching with TanStack Query (cached) ────────────────────────────
   const { data: contacts = [], isLoading: loadingContacts } = useQuery({
-    queryKey: ['crm-contacts', currentCompany?.id, buId],
+    queryKey: ['crm-contacts', currentCompany?.id, buId, isCollaborator ? supabaseUser?.id : 'all'],
     enabled: !!currentCompany,
     staleTime: 60_000,          // cache 60 s — avoid refetch on tab-switch
     queryFn: async () => {
-      // Select only columns used in the UI — skip company_id, updated_at, created_by, etc.
-      const q = withBuFilter(
+      // Select only columns used in the UI — skip company_id, updated_at, etc.
+      let q = withBuFilter(
         supabase.from('crm_contacts')
           .select('id,name,cpf,email,phone,position,origin,temperature,status,score,responsible_id,tags,custom_fields,last_interaction_at,created_at')
           .eq('company_id', currentCompany!.id)
           .order('created_at', { ascending: false }),
         buId,
       );
+      // Colaboradores veem apenas seus próprios contatos (belt-and-suspenders ao lado do RLS)
+      if (isCollaborator && supabaseUser) {
+        q = q.or(`responsible_id.eq.${supabaseUser.id},created_by.eq.${supabaseUser.id}`);
+      }
       const { data, error } = await q;
       if (error) throw error;
       return (data ?? []) as CRMContact[];
@@ -170,16 +175,20 @@ export default function CRMPeoplePage() {
   });
 
   const { data: deals = [] } = useQuery({
-    queryKey: ['crm-deals-people', currentCompany?.id],
+    queryKey: ['crm-deals-people', currentCompany?.id, isCollaborator ? supabaseUser?.id : 'all'],
     enabled: !!currentCompany,
     staleTime: 60_000,
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from('crm_pipeline_deals')
         .select('id,title,value,stage_name,pipeline_id,contact_id,expected_close_date,created_at')
         .eq('company_id', currentCompany!.id)
         .not('contact_id', 'is', null)
         .limit(5000);         // safety cap — avoids unbounded fetch
+      if (isCollaborator && supabaseUser) {
+        q = q.or(`responsible_id.eq.${supabaseUser.id},created_by.eq.${supabaseUser.id}`);
+      }
+      const { data, error } = await q;
       if (error) throw error;
       return (data ?? []) as { id: string; title: string; value: number; stage_name: string; pipeline_id: string; contact_id: string; expected_close_date: string | null; created_at: string }[];
     },

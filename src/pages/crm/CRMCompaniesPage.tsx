@@ -53,7 +53,8 @@ interface CRMCompany {
 }
 
 export default function CRMCompaniesPage() {
-  const { currentCompany, supabaseUser, currentBusinessUnit } = useAuth();
+  const { currentCompany, supabaseUser, currentBusinessUnit, role } = useAuth();
+  const isCollaborator = role === 'collaborator';
   const { t, language } = useI18n();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -105,10 +106,22 @@ export default function CRMCompaniesPage() {
   const fetchCompanies = async () => {
     if (!currentCompany) return;
     setLoading(true);
+    let companiesQuery = withBuFilter(
+      supabase.from('crm_companies').select('*').eq('company_id', currentCompany.id).order('created_at', { ascending: false }),
+      buId,
+    );
+    let dealsQuery = supabase
+      .from('crm_pipeline_deals').select('id, value, stage_name, pipeline_id, crm_company_id')
+      .eq('company_id', currentCompany.id).not('crm_company_id', 'is', null);
+    // Colaboradores veem apenas seus próprios registros
+    if (isCollaborator && supabaseUser) {
+      companiesQuery = companiesQuery.or(`responsible_id.eq.${supabaseUser.id},created_by.eq.${supabaseUser.id}`);
+      dealsQuery = dealsQuery.or(`responsible_id.eq.${supabaseUser.id},created_by.eq.${supabaseUser.id}`);
+    }
     const [{ data }, { data: cadenceData }, { data: dealsData }, { data: pipesData }] = await Promise.all([
-      withBuFilter(supabase.from('crm_companies').select('*').eq('company_id', currentCompany.id).order('created_at', { ascending: false }), buId),
+      companiesQuery,
       supabase.from('crm_cadence_settings').select('*').eq('company_id', currentCompany.id).maybeSingle(),
-      supabase.from('crm_pipeline_deals').select('id, value, stage_name, pipeline_id, crm_company_id').eq('company_id', currentCompany.id).not('crm_company_id', 'is', null),
+      dealsQuery,
       supabase.from('crm_pipelines').select('id, stages').eq('company_id', currentCompany.id),
     ]);
     if (cadenceData) setCadence({ warm_after_days: cadenceData.warm_after_days, cold_after_days: cadenceData.cold_after_days });
