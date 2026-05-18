@@ -1,5 +1,5 @@
 import { Outlet, useLocation } from 'react-router-dom';
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { AppSidebar } from './AppSidebar';
 import { AppHeader } from './AppHeader';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -10,12 +10,6 @@ import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { TopLoadingBar } from '@/components/shared/TopLoadingBar';
 import { DashboardSkeleton } from '@/components/shared/PageSkeletons';
 import { DailyWelcomePopup } from '@/components/shared/DailyWelcomePopup';
-
-const pageVariants = {
-  initial: { opacity: 0, y: 8 },
-  animate: { opacity: 1, y: 0 },
-  exit: { opacity: 0 },
-};
 
 export function AppLayout() {
   const isMobile = useIsMobile();
@@ -43,21 +37,17 @@ export function AppLayout() {
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         <AppHeader onMobileMenuToggle={() => setMobileOpen(true)} />
         <main ref={mainRef} className="flex-1 overflow-y-auto flex flex-col">
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.div
-              key={location.pathname}
-              className="flex-1 flex flex-col p-4 md:p-6"
-              variants={pageVariants}
-              initial="initial"
-              animate="animate"
-              exit="exit"
-              transition={{ duration: 0.15, ease: 'easeOut' }}
-            >
-              <Suspense fallback={<DashboardSkeleton />}>
-                <Outlet />
-              </Suspense>
-            </motion.div>
-          </AnimatePresence>
+          <motion.div
+            key={location.pathname}
+            className="flex-1 flex flex-col p-4 md:p-6"
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.15, ease: 'easeOut' }}
+          >
+            <Suspense fallback={<DashboardSkeleton />}>
+              <Outlet />
+            </Suspense>
+          </motion.div>
         </main>
         <OnboardingTour />
         <DailyWelcomePopup />
